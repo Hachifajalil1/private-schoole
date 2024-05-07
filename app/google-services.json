@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "1022555924306",
+    "firebase_url": "https://private-school-1-default-rtdb.firebaseio.com",
+    "project_id": "private-school-1",
+    "storage_bucket": "private-school-1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1022555924306:android:ec22173e7f28ecf9fcfc8b",
+        "android_client_info": {
+          "package_name": "com.example.myapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-4uTnmsNGxRtrtkutJe6md5Nz7ZrSJ6k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1022555924306:android:f40723d96e89a792fcfc8b",
+        "android_client_info": {
+          "package_name": "com.example.private_school"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-4uTnmsNGxRtrtkutJe6md5Nz7ZrSJ6k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
