@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.ArrowBack // استيراد مكت
 import androidx.compose.material.icons.filled.Check // استيراد مكتبة Check من compose.material.icons.filled
 import androidx.compose.material.icons.filled.Delete // استيراد مكتبة Delete من compose.material.icons.filled
 import androidx.compose.material.icons.filled.Edit // استيراد مكتبة Edit من compose.material.icons.filled
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button // استيراد مكتبة Button من compose.material3
 import androidx.compose.material3.Card
@@ -76,6 +77,8 @@ import com.google.firebase.database.ValueEventListener // استيراد مكت�
 import com.google.firebase.database.database // استيراد مكتبة database من com.google.firebase.database
 import com.google.firebase.database.getValue // استيراد مكتبة getValue من com.google.firebase.database
 import com.google.firebase.storage.storage // استيراد مكتبة storage من com.google.firebase.storage
+import android.graphics.drawable.shapes.OvalShape;
+import androidx.compose.material.icons.filled.AddCircle
 
 // تعريف الكلاس Admin
 data class Admin(
@@ -105,61 +108,56 @@ fun AdminList(admins: List<Admin>, innerPadding: PaddingValues, onItemClick: (Ad
     var searchQuery by remember { mutableStateOf("") }
     var showAddAdminForm by remember { mutableStateOf(false) }
 
-
     Column {
-        // AddAdminForm button
-        Button(
-            onClick = { showAddAdminForm = true },
+        Row(
             modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxWidth()
+                .padding(top = 120.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Add Admin")
+            IconButton(
+                onClick = { /* Perform search action */ }
+            ) {
+                Icon(Icons.Default.Search, contentDescription = "Search")
+            }
+            TextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Search") },
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp)
+            )
+            IconButton(
+                onClick = { showAddAdminForm = true }
+            ) {
+                Icon(Icons.Default.AddCircle, contentDescription = "Add admin" +
+                        "")
+            }
         }
 
-        // AddAdminForm dialog
         if (showAddAdminForm) {
             AlertDialog(
                 onDismissRequest = { showAddAdminForm = false },
                 title = { Text("Add New Admin") },
                 text = { AddAdminForm() },
                 confirmButton = {
-                    Row(
-                        modifier = Modifier
-                            .padding(start = 8.dp) // تضبيط التباعد من الجانب الأيسر
-                            .align(Alignment.Start) // تحديد اليسار كموضع
-                    ) {
-                        IconButton(onClick = {
-                            // Add admin logic here
-                            showAddAdminForm = false
-                        }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                        }
+                    IconButton(onClick = {
+                        // Add admin logic here
+                        showAddAdminForm = false
+                    }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
         }
 
-
-        // AdminList
-Row {
-
-}
-        TextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            label = { Text("Search") },
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxWidth()
-        )
         LazyColumn(
             modifier = Modifier
-                .padding(innerPadding)
+                .padding(top = 50.dp)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-
             items(admins.filter {
                 it.name.contains(searchQuery, ignoreCase = true) || it.email.contains(
                     searchQuery,
@@ -182,7 +180,6 @@ Row {
                         Box {
                             FirebaseImage(url = admin.image)
                         }
-                        // Display admin item content
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
                             Text(
@@ -210,10 +207,9 @@ Row {
                 }
             }
         }
-
-
     }
 }
+
 
 // تعريف وظيفة Composable لعرض تفاصيل الادمن
 @Composable
