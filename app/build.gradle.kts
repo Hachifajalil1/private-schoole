@@ -52,6 +52,7 @@ android {
 
 dependencies {
     implementation("com.google.firebase:firebase-storage:21.0.0")
+    implementation("androidx.room:room-common:2.6.1")
     val composeBom = platform("androidx.compose:compose-bom:2024.04.01")
     implementation(composeBom)
 

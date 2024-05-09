@@ -79,6 +79,7 @@ import com.google.firebase.database.getValue // استيراد مكتبة getVal
 import com.google.firebase.storage.storage // استيراد مكتبة storage من com.google.firebase.storage
 import android.graphics.drawable.shapes.OvalShape;
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.room.Update
 
 // تعريف الكلاس Admin
 data class Admin(
@@ -97,7 +98,7 @@ data class AdminCreatUser(
     val address: String,
     val phone: String,
     val familyName: String,
-    val image: String,
+    var image: String,
     val role : String
 )
 // تعريف وظيفة Composable لعرض قائمة الادمنز
@@ -123,7 +124,7 @@ fun AdminList(admins: List<Admin>, innerPadding: PaddingValues, onItemClick: (Ad
             TextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                label = { Text("Search") },
+                label = { Text("Search  email  ") },
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 8.dp)
@@ -158,8 +159,8 @@ fun AdminList(admins: List<Admin>, innerPadding: PaddingValues, onItemClick: (Ad
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(admins.filter {
-                it.name.contains(searchQuery, ignoreCase = true) || it.email.contains(
+            items(admins.filter {it.phone.contains(searchQuery, ignoreCase = true) ||it.name.contains(searchQuery, ignoreCase = true) ||
+                it.familyName.contains(searchQuery, ignoreCase = true) || it.email.contains(
                     searchQuery,
                     ignoreCase = true
                 )
@@ -218,6 +219,7 @@ fun AdminDetails(
     innerPadding: PaddingValues,
     onDeleteClick: () -> Unit,
     onBackClick: () -> Unit,
+    onClose: () -> Unit
 ) {
     // تعريف المتغيرات اللازمة لعرض تفاصيل الادمن
     var name by remember { mutableStateOf(admin.name) }
@@ -232,7 +234,7 @@ fun AdminDetails(
     var imageUpdated by remember { mutableStateOf(false) }
     // تعريف CoroutineScope لإستخدام الـ Coroutines
     val scope = rememberCoroutineScope()
-
+    var showAdminDetail by remember { mutableStateOf(false) }
     // استخدام ActivityResultContracts.GetContent() للحصول على محتوى الصورة
     val getContent = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
@@ -241,134 +243,131 @@ fun AdminDetails(
         }
     }
 
-    // تصميم عرض تفاصيل الادمن
-    Column(
-        modifier = Modifier
-            .padding(innerPadding)
-            .fillMaxSize()
-            .background(Color.White),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box {
-            FirebaseImage(url = admin.image)
-        }
-        TextField(
-            value = familyName,
-            onValueChange = { familyName = it },
-            label = { Text("Family Name") },
-            modifier = Modifier
-                .padding(8.dp)
-                .clip(shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                .background(Color.White)
-        )
+    AlertDialog(
+        onDismissRequest = onBackClick,
+        title = { Text("Admin Details") },
+        text = {
+            // تصميم عرض تفاصيل الادمن
+            Column(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Box {
+                    FirebaseImage(url = admin.image)
+                }
+
+                OutlinedTextField(
+                    value = familyName,
+                    onValueChange = { familyName = it },
+                    label = { Text("Family Name") },
+                    )
 
 
 
-        // حقل نصي لعرض الاسم
-        TextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Name") },
-            modifier = Modifier
-                .padding(8.dp)
-                .clip(shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                .background(Color.White)
-        )
+                // حقل نصي لعرض الاسم
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
 
-        // حقل نصي لعرض البريد الالكتروني
-        TextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            modifier = Modifier
-                .padding(8.dp)
-                .clip(shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                .background(Color.White)
-        )
+                )
 
-        // حقل نصي لعرض الهاتف
-        TextField(
-            value = phone,
-            onValueChange = { phone = it },
-            label = { Text("Phone") },
-            modifier = Modifier
-                .padding(8.dp)
-                .clip(shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                .background(Color.White)
-        )
+                // حقل نصي لعرض البريد الالكتروني
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
 
-        // حقل نصي لعرض العنوان
-        TextField(
-            value = address,
-            onValueChange = { address = it },
-            label = { Text("Address") },
-            modifier = Modifier
-                .padding(8.dp)
-                .clip(shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                .background(Color.White)
-        )
+                )
+
+                // حقل نصي لعرض الهاتف
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Phone") },
+
+                )
+
+                // حقل نصي لعرض العنوان
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    label = { Text("Address") },
+
+                )
 
 
 
-        // زر لاختيار الصورة
-        Button(
-            onClick = {
-                getContent.launch("image/*")
-            },
-            modifier = Modifier.padding(8.dp)
-        ) {
-            Text(if (updatedImage != null) "selected image " else "select image")
-        }
+                // زر لاختيار الصورة
+                Button(
+                    onClick = {
+                        getContent.launch("image/*")
+                    },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text(if (updatedImage != null) "selected image " else "select image")
+                }
 
-        // صف لعرض الأيقونات (العودة، التحديث، الحذف)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBackClick) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = "Back to Menu" )
             }
-            Spacer(modifier = Modifier.width(60.dp))
-            IconButton(onClick = onBackClick) {
-                if (imageUpdated) {
-                    // Update the image
-                    val storageRef = Firebase.storage.reference.child("images/ProfileUsers/${admin.uid}")
-                    val uploadTask = storageRef.putFile(Uri.parse(updatedImage))
+        },
+        confirmButton = {
+            Row {
+                IconButton(     modifier = Modifier.padding( end  =20.dp,),
+                    onClick = {
+                        if (imageUpdated) {
+                            // Update the image
+                            val storageRef = Firebase.storage.reference.child("images/ProfileUsers/${admin.uid}")
+                            val uploadTask = storageRef.putFile(Uri.parse(updatedImage))
 
-                    uploadTask.addOnCompleteListener { uploadTask ->
-                        if (uploadTask.isSuccessful) {
-                            storageRef.downloadUrl.addOnCompleteListener { downloadUrlTask ->
-                                if (downloadUrlTask.isSuccessful) {
-                                    val downloadUri = downloadUrlTask.result
-                                    val imageUrl = downloadUri.toString()
+                            uploadTask.addOnCompleteListener { uploadTask ->
+                                if (uploadTask.isSuccessful) {
+                                    storageRef.downloadUrl.addOnCompleteListener { downloadUrlTask ->
+                                        if (downloadUrlTask.isSuccessful) {
+                                            val downloadUri = downloadUrlTask.result
+                                            val imageUrl = downloadUri.toString()
 
-                                    // Update the image URL in Realtime Database
-                                    updateUserData(admin.uid, familyName, name, email, address, phone, imageUrl)
-
+                                            // Update the image URL in Realtime Database
+                                            updateUserData(admin.uid, familyName, name, email, address, phone, imageUrl)
+                                            onBackClick
+                                        }
+                                    }
+                                } else {
+                                    uploadTask.exception?.let {
+                                        // Handle the exception
+                                    }
                                 }
                             }
                         } else {
-                            uploadTask.exception?.let {
-                                // Handle the exception
-                            }
+                            // Use the current image
+                            updateUserData(admin.uid, familyName, name, email, address, phone, image)
+                            onBackClick
                         }
                     }
-                } else {
-                    // Use the current image
-                    updateUserData(admin.uid, familyName, name, email, address, phone, image)
+                ) {
+                    Icon(Icons.Filled.Check, contentDescription = "Update")
                 }
-                Icon(Icons.Filled.Edit, contentDescription = "Update",tint = Color.Blue)
+                Spacer(modifier = Modifier.height(8.dp))
+                IconButton(
+                    modifier = Modifier.padding(end = 80.dp),
+                    onClick = {
+                        onDeleteClick()
+                    }
+                ) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.Red)
+                }
+
             }
+        },
 
 
 
-            Spacer(modifier = Modifier.width(60.dp))
-            IconButton(onClick = onDeleteClick) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.Red)
-            }
-
-        }
-    }
-    admins.value.clear()
+    )
 }
+
 
 // تعريف الحالة المستخدمة لتحميل البيانات
 private enum class LoadState {
@@ -406,9 +405,10 @@ fun HomeAdmins(innerPadding: PaddingValues) {
                 onBackClick = {
                     selectedAdmin = null
                     loadState = LoadState.Idle
-                }
+                }, onClose = {}
             )
         }
+
 
         // Load data if not loaded yet
         LaunchedEffect(loadState) {
@@ -514,17 +514,22 @@ fun AddAdminForm() {
     var phone by remember { mutableStateOf("") }
     var familyName by remember { mutableStateOf("") }
     var image by remember { mutableStateOf("") }
+    var selectImage by remember { mutableStateOf<String?>(null) }
+    var imageSelect by remember { mutableStateOf(false) }
 
-    // Check if email or password is empty
     val isEmailEmpty = email.isEmpty()
     val isPasswordEmpty = password.isEmpty()
-
-    // Check if email is valid
     val isEmailValid by remember(email) {
-        mutableStateOf(
-            android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
-        )
+        mutableStateOf(android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())
     }
+
+    val getContent =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let {
+                selectImage = uri.toString()
+                imageSelect = true
+            }
+        }
 
     Column(
         modifier = Modifier
@@ -534,6 +539,14 @@ fun AddAdminForm() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        Button(
+            onClick = {
+                getContent.launch("image/*")
+            },
+            modifier = Modifier.padding(8.dp)
+        ) {
+            Text(if (selectImage != null) "Selected Image" else "Select Image")
+        }
 
         OutlinedTextField(
             value = familyName,
@@ -554,12 +567,20 @@ fun AddAdminForm() {
         )
         if (!isEmailValid && email.isNotEmpty()) {
             Text(
-                text = "Invalid email format",
+                text = "Invalid Email Format",
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.Red,
                 modifier = Modifier.padding(start = 16.dp)
             )
         }
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password *") },
+            visualTransformation = PasswordVisualTransformation(),
+            isError = isPasswordEmpty,
+            textStyle = if (isPasswordEmpty) LocalTextStyle.current.copy(color = Color.Red) else LocalTextStyle.current
+        )
         OutlinedTextField(
             value = phone,
             onValueChange = { phone = it },
@@ -570,37 +591,61 @@ fun AddAdminForm() {
             onValueChange = { address = it },
             label = { Text("Address") }
         )
-        OutlinedTextField(
-            value = image,
-            onValueChange = { image = it },
-            label = { Text("Image URL") }
-        )
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password *") },
-            visualTransformation = PasswordVisualTransformation(),
-            isError = isPasswordEmpty,
-            textStyle = if (isPasswordEmpty) LocalTextStyle.current.copy(color = Color.Red) else LocalTextStyle.current
-        )
+
+
+
         IconButton(
             onClick = {
                 if (email.isEmpty() || password.isEmpty() || !isEmailValid) {
                     // Handle empty or invalid email or password
                     return@IconButton
                 }
-
-                // Register the admin in Firebase Authentication
+                val adminA = AdminCreatUser(
+                    name,
+                    email,
+                    address,
+                    phone,
+                    familyName,
+                    "",
+                    "admin"
+                )
                 FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
                             val user = task.result?.user
                             if (user != null) {
                                 val uid = user.uid
-                                // Add the admin to the real-time database
-                                val admin = AdminCreatUser(name, email, address, phone, familyName, image, "admin")
-                                FirebaseDatabase.getInstance().reference.child("users").child("admins").child(uid).setValue(admin)
-                                // Clear the fields
+                                if (imageSelect) {
+                                    val storageRef =
+                                        Firebase.storage.reference.child("images/ProfileUsers/${uid}")
+                                    val uploadTask = storageRef.putFile(Uri.parse(selectImage))
+
+                                    uploadTask.addOnCompleteListener { uploadTask ->
+                                        if (uploadTask.isSuccessful) {
+                                            storageRef.downloadUrl.addOnCompleteListener { downloadUrlTask ->
+                                                if (downloadUrlTask.isSuccessful) {
+                                                    val downloadUri = downloadUrlTask.result
+                                                    val imageUrl = downloadUri.toString()
+                                                    adminA.image = imageUrl
+
+                                                    FirebaseDatabase.getInstance()
+                                                        .reference.child("users").child("admins")
+                                                        .child(uid).setValue(adminA)
+                                                }
+                                            }
+                                        } else {
+                                            uploadTask.exception?.let {
+                                                // Handle the exception
+                                            }
+                                        }
+                                    }
+                                } else {
+
+
+                                    FirebaseDatabase.getInstance().reference.child("users")
+                                        .child("admins").child(uid).setValue(adminA)
+                                }
+
                                 name = ""
                                 email = ""
                                 password = ""
