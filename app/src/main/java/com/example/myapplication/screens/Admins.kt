@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons // استيراد مكتبة Icons من compose.material.icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack // استيراد مكتبة ArrowBack من compose.material.icons.filled
 import androidx.compose.material.icons.filled.Check // استيراد مكتبة Check من compose.material.icons.filled
 import androidx.compose.material.icons.filled.Delete // استيراد مكتبة Delete من compose.material.icons.filled
@@ -38,6 +39,9 @@ import androidx.compose.material3.Button // استيراد مكتبة Button م�
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon // استيراد مكتبة Icon من compose.material3
 import androidx.compose.material3.IconButton // استيراد مكتبة IconButton من compose.material3
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text // استيراد مكتبة Text من compose.material3
 import androidx.compose.material3.TextField // استيراد مكتبة TextField من compose.material3
 import androidx.compose.runtime.Composable // استيراد مكتبة Composable من compose.runtime
@@ -81,9 +85,18 @@ data class Admin(
     val address: String,
     val phone: String,
     val familyName: String,
-    val image: String
+    val image: String,
+    val role : String
 )
-
+data class AdminCreatUser(
+    val name: String,
+    val email: String,
+    val address: String,
+    val phone: String,
+    val familyName: String,
+    val image: String,
+    val role : String
+)
 // تعريف وظيفة Composable لعرض قائمة الادمنز
 
 
@@ -111,15 +124,22 @@ fun AdminList(admins: List<Admin>, innerPadding: PaddingValues, onItemClick: (Ad
                 title = { Text("Add New Admin") },
                 text = { AddAdminForm() },
                 confirmButton = {
-                    Button(onClick = {
-                        // Add admin logic here
-                        showAddAdminForm = false
-                    }) {
-                        Text("Add")
+                    Row(
+                        modifier = Modifier
+                            .padding(start = 8.dp) // تضبيط التباعد من الجانب الأيسر
+                            .align(Alignment.Start) // تحديد اليسار كموضع
+                    ) {
+                        IconButton(onClick = {
+                            // Add admin logic here
+                            showAddAdminForm = false
+                        }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 }
             )
         }
+
 
         // AdminList
 Row {
@@ -410,7 +430,7 @@ fun HomeAdmins(innerPadding: PaddingValues) {
                                 val phone = childSnapshot.child("phone").getValue(String::class.java) ?: ""
                                 val familyName = childSnapshot.child("familyName").getValue(String::class.java) ?: ""
                                 val image = childSnapshot.child("image").getValue(String::class.java) ?: ""
-                                val admin = Admin(name, email, uid, address, phone, familyName, image)
+                                val admin = Admin(name, email, uid, address, phone, familyName, image,"admin")
                                 adminsFromFirebase.add(admin)
                             }
                             admins.value.clear()
@@ -489,8 +509,7 @@ fun FirebaseImage(url: String) {
         contentScale = ContentScale.Crop,
     )
 
-}
-@Composable
+}@Composable
 fun AddAdminForm() {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -500,51 +519,81 @@ fun AddAdminForm() {
     var familyName by remember { mutableStateOf("") }
     var image by remember { mutableStateOf("") }
 
+    // Check if email or password is empty
+    val isEmailEmpty = email.isEmpty()
+    val isPasswordEmpty = password.isEmpty()
+
+    // Check if email is valid
+    val isEmailValid by remember(email) {
+        mutableStateOf(
+            android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
+        )
+    }
+
     Column(
         modifier = Modifier
-            .padding(16.dp)
-            .fillMaxWidth(),
+            .padding(8.dp)
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        TextField(
+
+        OutlinedTextField(
             value = familyName,
             onValueChange = { familyName = it },
             label = { Text("Family Name") }
         )
-        TextField(
+        OutlinedTextField(
             value = name,
             onValueChange = { name = it },
             label = { Text("Name") }
         )
-        TextField(
+        OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") }
+            label = { Text("Email *") },
+            isError = isEmailEmpty || !isEmailValid,
+            textStyle = if (isEmailEmpty || !isEmailValid) LocalTextStyle.current.copy(color = Color.Red) else LocalTextStyle.current
         )
-        TextField(
+        if (!isEmailValid && email.isNotEmpty()) {
+            Text(
+                text = "Invalid email format",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.Red,
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
+        OutlinedTextField(
             value = phone,
             onValueChange = { phone = it },
             label = { Text("Phone") }
         )
-        TextField(
+        OutlinedTextField(
             value = address,
             onValueChange = { address = it },
             label = { Text("Address") }
         )
-        TextField(
+        OutlinedTextField(
             value = image,
             onValueChange = { image = it },
             label = { Text("Image URL") }
         )
-        TextField(
+        OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation()
+            label = { Text("Password *") },
+            visualTransformation = PasswordVisualTransformation(),
+            isError = isPasswordEmpty,
+            textStyle = if (isPasswordEmpty) LocalTextStyle.current.copy(color = Color.Red) else LocalTextStyle.current
         )
-        Button(
+        IconButton(
             onClick = {
+                if (email.isEmpty() || password.isEmpty() || !isEmailValid) {
+                    // Handle empty or invalid email or password
+                    return@IconButton
+                }
+
                 // Register the admin in Firebase Authentication
                 FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
                     .addOnCompleteListener { task ->
@@ -553,7 +602,7 @@ fun AddAdminForm() {
                             if (user != null) {
                                 val uid = user.uid
                                 // Add the admin to the real-time database
-                                val admin = Admin(name, email, uid, address, phone, familyName, image)
+                                val admin = AdminCreatUser(name, email, address, phone, familyName, image, "admin")
                                 FirebaseDatabase.getInstance().reference.child("users").child("admins").child(uid).setValue(admin)
                                 // Clear the fields
                                 name = ""
@@ -568,10 +617,13 @@ fun AddAdminForm() {
                             // Handle registration failure
                         }
                     }
-            }
+            },
+            modifier = Modifier.padding(top = 16.dp)
         ) {
-            Text("Add Admin")
+            Icon(Icons.Default.Add, contentDescription = "Add Admin")
         }
     }
 }
+
+
 
