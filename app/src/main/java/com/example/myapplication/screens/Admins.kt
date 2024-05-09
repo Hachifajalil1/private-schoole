@@ -124,7 +124,7 @@ fun AdminList(admins: List<Admin>, innerPadding: PaddingValues, onItemClick: (Ad
             TextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                label = { Text("Search  email  ") },
+                label = { Text("Search :  email  name  phone") },
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 8.dp)
