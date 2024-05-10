@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.content.ContentValues // استيراد مكتبة ContentValues من Android
+import android.content.Context
 import android.net.Uri // استيراد مكتبة Uri من Android
 import android.util.Log // استيراد مكتبة Log من Android
 import android.widget.Toast // استيراد مكتبة Toast من Android
@@ -82,7 +83,10 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.room.Update
 data class Room(val id: String, val name: String, val capacity: String)
 @Composable
-fun RoomList(innerPadding: PaddingValues,onClickAdd: () -> Unit) {
+fun RoomList( innerPadding: PaddingValues,
+              onClickAdd: () -> Unit,
+              onDeleteRoom: (Room) -> Unit,
+              onUpdateRoom: (Room) -> Unit) {
     var rooms by remember { mutableStateOf(listOf<Room>()) }
     var searchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -109,20 +113,25 @@ fun RoomList(innerPadding: PaddingValues,onClickAdd: () -> Unit) {
     }
 
     Column(modifier = Modifier.padding(innerPadding)) {
+        Row {
+
+
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             label = { Text("Search") },
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .weight(1f)
+                .padding(horizontal = 10.dp, vertical = 8.dp)
         )
         IconButton(
             onClick = { showAddDialog = true },
-            modifier = Modifier.padding().align(Alignment.End).size(40.dp)
+            modifier = Modifier
+                .padding(20.dp)
+
         ) {
-            Icon(Icons.Default.AddCircle, contentDescription = "Add Room")
-        }
+            Icon(Icons.Default.AddCircle, contentDescription = "Add Room",)
+        } }
 
 
 
@@ -147,14 +156,21 @@ fun RoomList(innerPadding: PaddingValues,onClickAdd: () -> Unit) {
                         room.capacity.contains(searchQuery, ignoreCase = true)
             }
             items(filteredRooms) { room ->
-                RoomItem(room)
+                RoomItem(
+                    room = room,
+                    onDelete = { onDeleteRoom(room) },
+                    onUpdate = { onUpdateRoom(room) }
+                )
             }
         }
     }
 }
-
 @Composable
-fun RoomItem(room: Room) {
+fun RoomItem(
+    room: Room,
+    onDelete: () -> Unit,
+    onUpdate: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = { /* Handle click event */ }
@@ -166,20 +182,58 @@ fun RoomItem(room: Room) {
             Text(text = room.name, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.width(8.dp))
             Text(text = "Capacity: ${room.capacity}")
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            IconButton(
+                onClick = onUpdate,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit Room")
+            }
+
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete Room")
+            }
         }
     }
 }
-
 @Composable
 fun RoomScreen(innerPadding: PaddingValues) {
-    var showAddDialog by remember { mutableStateOf(false) }
+    var selectedAdmi by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var showEditDialog by remember { mutableStateOf(false) }
+    var selectedRoom: Room? by remember { mutableStateOf(null) }
 
     Column {
-        RoomList(innerPadding, onClickAdd = {})
+        RoomList(
+            innerPadding = innerPadding,
+            onClickAdd = {},
+            onDeleteRoom = { room -> deleteRoomDatabase(context, room) },
+            onUpdateRoom = { room ->
+                showEditDialog = true
+                selectedRoom = room
+            }
+        )
+    }
 
+    if (showEditDialog && selectedRoom != null) {
+        RoomUpdateDialog(
+            room = selectedRoom!!,
 
+            onCloseDialog = {
+                showEditDialog = false
+                selectedRoom = null
+            }
+        )
     }
 }
+
+
+
 data class RoomData(val roomName: String, val capacity: String)
 @Composable
 fun RoomAdd(onAddRoom: (RoomData) -> Unit, onCloseDialog: () -> Unit) {
@@ -224,18 +278,46 @@ fun RoomAdd(onAddRoom: (RoomData) -> Unit, onCloseDialog: () -> Unit) {
 
 
 
+fun addRoomDatabase(roomName: String, capacity: String) {
+    val database = Firebase.database
+    val roomsRef = database.getReference("classrooms")
 
-/*
+    // Generate a unique key for the new room
+    val newRoomRef = roomsRef.push()
+
+    // Set the room data
+    newRoomRef.setValue(mapOf("name" to roomName, "capacity" to capacity))
+}
+fun deleteRoomDatabase(context: Context, room: Room) {
+    val database = Firebase.database
+    val roomsRef = database.getReference("classrooms").child(room.id)
+    roomsRef.removeValue()
+    Toast.makeText(context, "Room deleted", Toast.LENGTH_SHORT).show()
+}
+
+fun updateRoomDatabase( id: String,name: String,capacity: String) {
+    val database = Firebase.database
+    val roomsRef = database.getReference("classrooms").child(id)
+
+    // Update the room data
+    val updates = mapOf<String, Any>(
+        "name" to name,
+        "capacity" to capacity
+    )
+    roomsRef.updateChildren(updates)
+}
+
 @Composable
-fun RoomAdd() {
-    var roomName by remember { mutableStateOf("") }
-    var capacity by remember { mutableStateOf("") }
-
-
+fun RoomUpdateDialog(
+    room: Room,
+    onCloseDialog: () -> Unit
+) {
+    var roomName by remember { mutableStateOf(room.name) }
+    var capacity by remember { mutableStateOf(room.capacity) }
 
     AlertDialog(
-        onDismissRequest = { /* Nothing to do here */ },
-        title = { Text(text = "Add Class Room") },
+        onDismissRequest = { onCloseDialog() },
+        title = { Text(text = "Update Class Room") },
         text = {
             Column {
                 OutlinedTextField(
@@ -246,10 +328,7 @@ fun RoomAdd() {
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = capacity,
-                    onValueChange = {
-
-                   capacity = it
-                    },
+                    onValueChange = { capacity = it },
                     label = { Text("Capacity") }
                 )
             }
@@ -258,25 +337,15 @@ fun RoomAdd() {
             Button(
                 onClick = {
                     if (roomName.isNotBlank() && capacity.isNotBlank()) {
-                        addRoomDatabase(roomName, capacity)
-                        roomName = ""
-                        capacity = ""
-
+                        // Move the updateRoomDatabase call here
+                        updateRoomDatabase(room.id, roomName, capacity)
+                        onCloseDialog()
                     }
                 }
             ) {
-                Text("Add")
+                Text("Update")
             }
         }
-    )}
-*/
-fun addRoomDatabase(roomName: String, capacity: String) {
-    val database = Firebase.database
-    val roomsRef = database.getReference("classrooms")
 
-    // Generate a unique key for the new room
-    val newRoomRef = roomsRef.push()
-
-    // Set the room data
-    newRoomRef.setValue(mapOf("name" to roomName, "capacity" to capacity))
+    )
 }
