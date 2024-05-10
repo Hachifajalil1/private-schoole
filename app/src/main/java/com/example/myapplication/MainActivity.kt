@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -91,6 +92,12 @@ class MainActivity : ComponentActivity() {
                         title = "Admins",
                         route = Screens.HomeAdmins.route,
                         selectedIcon = Icons.Filled.AccountBox,
+                        unSelectedIcon = Icons.Outlined.AccountCircle,
+                    ),
+                    NavigationItem(
+                        title = "Room",
+                        route = Screens.Room.route,
+                        selectedIcon = Icons.Filled.Edit,
                         unSelectedIcon = Icons.Outlined.AccountCircle,
                     ),
                 )

@@ -37,5 +37,8 @@ fun SetUpNavGraph(
         composable(Screens.HomeAdmins.route){
             HomeAdmins(innerPadding = innerPadding)
         }
+        composable(Screens.Room.route){
+            RoomScreen(innerPadding = innerPadding)
+        }
     }
 }

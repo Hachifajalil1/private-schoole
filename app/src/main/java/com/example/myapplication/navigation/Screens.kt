@@ -13,4 +13,5 @@ sealed class Screens(var route: String) {
     object  Notification : Screens("notification")
     object  Setting : Screens("setting")
     object  HomeAdmins : Screens("HomeAdmins")
+    object  Room : Screens("room")
 }

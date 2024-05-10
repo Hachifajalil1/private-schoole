@@ -1,0 +1,282 @@
+package com.example.myapplication
+
+import android.content.ContentValues // استيراد مكتبة ContentValues من Android
+import android.net.Uri // استيراد مكتبة Uri من Android
+import android.util.Log // استيراد مكتبة Log من Android
+import android.widget.Toast // استيراد مكتبة Toast من Android
+import androidx.activity.compose.rememberLauncherForActivityResult // استيراد مكتبة rememberLauncherForActivityResult من Android
+import androidx.activity.result.ActivityResultLauncher // استيراد مكتبة ActivityResultLauncher من Android
+import androidx.activity.result.contract.ActivityResultContracts // استيراد مكتبة ActivityResultContracts من Android
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background // استيراد مكتبة background من compose.foundation
+import androidx.compose.foundation.clickable // استيراد مكتبة clickable من compose.foundation
+import androidx.compose.foundation.layout.Arrangement // استيراد مكتبة Arrangement من compose.foundation.layout
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column // استيراد مكتبة Column من compose.foundation.layout
+import androidx.compose.foundation.layout.PaddingValues // استيراد مكتبة PaddingValues من compose.foundation.layout
+import androidx.compose.foundation.layout.Row // استيراد مكتبة Row من compose.foundation.layout
+import androidx.compose.foundation.layout.Spacer // استيراد مكتبة Spacer من compose.foundation.layout
+import androidx.compose.foundation.layout.fillMaxSize // استيراد مكتبة fillMaxSize من compose.foundation.layout
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height // استيراد مكتبة height من compose.foundation.layout
+import androidx.compose.foundation.layout.padding // استيراد مكتبة padding من compose.foundation.layout
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width // استيراد مكتبة width من compose.foundation.layout
+import androidx.compose.foundation.lazy.LazyColumn // استيراد مكتبة LazyColumn من compose.foundation.lazy
+import androidx.compose.foundation.lazy.items // استيراد مكتبة items من compose.foundation.lazy
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons // استيراد مكتبة Icons من compose.material.icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack // استيراد مكتبة ArrowBack من compose.material.icons.filled
+import androidx.compose.material.icons.filled.Check // استيراد مكتبة Check من compose.material.icons.filled
+import androidx.compose.material.icons.filled.Delete // استيراد مكتبة Delete من compose.material.icons.filled
+import androidx.compose.material.icons.filled.Edit // استيراد مكتبة Edit من compose.material.icons.filled
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button // استيراد مكتبة Button من compose.material3
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon // استيراد مكتبة Icon من compose.material3
+import androidx.compose.material3.IconButton // استيراد مكتبة IconButton من compose.material3
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text // استيراد مكتبة Text من compose.material3
+import androidx.compose.material3.TextField // استيراد مكتبة TextField من compose.material3
+import androidx.compose.runtime.Composable // استيراد مكتبة Composable من compose.runtime
+import androidx.compose.runtime.LaunchedEffect // استيراد مكتبة LaunchedEffect من compose.runtime
+import androidx.compose.runtime.getValue // استيراد مكتبة getValue من compose.runtime
+import androidx.compose.runtime.mutableStateOf // استيراد مكتبة mutableStateOf من compose.runtime
+import androidx.compose.runtime.remember // استيراد مكتبة remember من compose.runtime
+import androidx.compose.runtime.rememberCoroutineScope // استيراد مكتبة rememberCoroutineScope من compose.runtime
+import androidx.compose.runtime.setValue // استيراد مكتبة setValue من compose.runtime
+import androidx.compose.ui.Alignment // استيراد مكتبة Alignment من compose.ui
+import androidx.compose.ui.Modifier // استيراد مكتبة Modifier من compose.ui
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color // استيراد مكتبة Color من compose.ui
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext // استيراد مكتبة LocalContext من compose.ui.platform
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight // استيراد مكتبة FontWeight من compose.ui.text
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp // استيراد مكتبة dp من compose.ui.unit
+import androidx.compose.ui.unit.sp // استيراد مكتبة sp من compose.ui.unit
+import coil.compose.rememberImagePainter
+import com.google.firebase.Firebase // استيراد مكتبة Firebase من com.google.firebase
+import com.google.firebase.FirebaseApp // استيراد مكتبة FirebaseApp من com.google.firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot // استيراد مكتبة DataSnapshot من com.google.firebase.database
+import com.google.firebase.database.DatabaseError // استيراد مكتبة DatabaseError من com.google.firebase.database
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener // استيراد مكتبة ValueEventListener من com.google.firebase.database
+import com.google.firebase.database.database // استيراد مكتبة database من com.google.firebase.database
+import com.google.firebase.database.getValue // استيراد مكتبة getValue من com.google.firebase.database
+import com.google.firebase.storage.storage // استيراد مكتبة storage من com.google.firebase.storage
+import android.graphics.drawable.shapes.OvalShape;
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.room.Update
+data class Room(val id: String, val name: String, val capacity: String)
+@Composable
+fun RoomList(innerPadding: PaddingValues,onClickAdd: () -> Unit) {
+    var rooms by remember { mutableStateOf(listOf<Room>()) }
+    var searchQuery by remember { mutableStateOf("") }
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val database = Firebase.database
+        val roomsRef = database.getReference("classrooms")
+
+        roomsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val updatedRooms = snapshot.children.mapNotNull { roomSnapshot ->
+                    val id = roomSnapshot.key.orEmpty()
+                    val name = roomSnapshot.child("name").getValue(String::class.java).orEmpty()
+                    val capacity = roomSnapshot.child("capacity").getValue(String::class.java).orEmpty()
+                    Room(id, name, capacity)
+                }
+                rooms = updatedRooms
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("RoomList", "Error loading rooms", error.toException())
+            }
+        })
+    }
+
+    Column(modifier = Modifier.padding(innerPadding)) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            label = { Text("Search") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        IconButton(
+            onClick = { showAddDialog = true },
+            modifier = Modifier.padding().align(Alignment.End).size(40.dp)
+        ) {
+            Icon(Icons.Default.AddCircle, contentDescription = "Add Room")
+        }
+
+
+
+        if (showAddDialog) {
+            RoomAdd(
+                onAddRoom = {
+                    addRoomDatabase(it.roomName, it.capacity)
+                },
+                onCloseDialog = {
+                    showAddDialog = false
+                }
+            )
+        }
+
+
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val filteredRooms = rooms.filter { room ->
+                room.name.contains(searchQuery, ignoreCase = true) ||
+                        room.capacity.contains(searchQuery, ignoreCase = true)
+            }
+            items(filteredRooms) { room ->
+                RoomItem(room)
+            }
+        }
+    }
+}
+
+@Composable
+fun RoomItem(room: Room) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { /* Handle click event */ }
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(text = room.name, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "Capacity: ${room.capacity}")
+        }
+    }
+}
+
+@Composable
+fun RoomScreen(innerPadding: PaddingValues) {
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    Column {
+        RoomList(innerPadding, onClickAdd = {})
+
+
+    }
+}
+data class RoomData(val roomName: String, val capacity: String)
+@Composable
+fun RoomAdd(onAddRoom: (RoomData) -> Unit, onCloseDialog: () -> Unit) {
+    var roomName by remember { mutableStateOf("") }
+    var capacity by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = { onCloseDialog() }, // إغلاق الحوار عند النقر خارجه
+        title = { Text(text = "Add Class Room") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = roomName,
+                    onValueChange = { roomName = it },
+                    label = { Text("Room Name") }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = capacity,
+                    onValueChange = { capacity = it },
+                    label = { Text("Capacity") }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (roomName.isNotBlank() && capacity.isNotBlank()) {
+                        onAddRoom(RoomData(roomName, capacity))
+                        roomName = ""
+                        capacity = ""
+                        onCloseDialog() // إغلاق الحوار بعد إضافة الغرفة بنجاح
+                    }
+                }
+            ) {
+                Text("Add")
+            }
+        }
+    )
+}
+
+
+
+
+
+/*
+@Composable
+fun RoomAdd() {
+    var roomName by remember { mutableStateOf("") }
+    var capacity by remember { mutableStateOf("") }
+
+
+
+    AlertDialog(
+        onDismissRequest = { /* Nothing to do here */ },
+        title = { Text(text = "Add Class Room") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = roomName,
+                    onValueChange = { roomName = it },
+                    label = { Text("Room Name") }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = capacity,
+                    onValueChange = {
+
+                   capacity = it
+                    },
+                    label = { Text("Capacity") }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (roomName.isNotBlank() && capacity.isNotBlank()) {
+                        addRoomDatabase(roomName, capacity)
+                        roomName = ""
+                        capacity = ""
+
+                    }
+                }
+            ) {
+                Text("Add")
+            }
+        }
+    )}
+*/
+fun addRoomDatabase(roomName: String, capacity: String) {
+    val database = Firebase.database
+    val roomsRef = database.getReference("classrooms")
+
+    // Generate a unique key for the new room
+    val newRoomRef = roomsRef.push()
+
+    // Set the room data
+    newRoomRef.setValue(mapOf("name" to roomName, "capacity" to capacity))
+}
