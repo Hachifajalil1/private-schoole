@@ -83,10 +83,12 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.room.Update
 data class Room(val id: String, val name: String, val capacity: String)
 @Composable
-fun RoomList( innerPadding: PaddingValues,
-              onClickAdd: () -> Unit,
-              onDeleteRoom: (Room) -> Unit,
-              onUpdateRoom: (Room) -> Unit) {
+fun RoomList(
+    innerPadding: PaddingValues,
+    onClickAdd: () -> Unit,
+    onDeleteRoom: (Room) -> Unit,
+    onUpdateRoom: (Room) -> Unit
+) {
     var rooms by remember { mutableStateOf(listOf<Room>()) }
     var searchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -113,27 +115,29 @@ fun RoomList( innerPadding: PaddingValues,
     }
 
     Column(modifier = Modifier.padding(innerPadding)) {
-        Row {
-
-
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            label = { Text("Search") },
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 10.dp, vertical = 8.dp)
-        )
-        IconButton(
-            onClick = { showAddDialog = true },
-            modifier = Modifier
-                .padding(20.dp)
-
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 40.dp, start = 8.dp,top=50.dp)
         ) {
-            Icon(Icons.Default.AddCircle, contentDescription = "Add Room",)
-        } }
 
-
+            IconButton(
+                onClick = { /* Perform search action */ }
+            ) {
+                Icon(Icons.Default.Search, contentDescription = "Search")
+            }
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Search") },
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(
+                onClick = { showAddDialog = true },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Icon(Icons.Default.AddCircle, contentDescription = "Add Room")
+            }
+        }
 
         if (showAddDialog) {
             RoomAdd(
@@ -146,9 +150,8 @@ fun RoomList( innerPadding: PaddingValues,
             )
         }
 
-
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val filteredRooms = rooms.filter { room ->
@@ -165,25 +168,67 @@ fun RoomList( innerPadding: PaddingValues,
         }
     }
 }
+
 @Composable
+
 fun RoomItem(
     room: Room,
     onDelete: () -> Unit,
     onUpdate: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Confirm Delete") },
+            text = { Text("Are you sure you want to delete this room?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDelete()
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = { /* Handle click event */ }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(10.dp)
         ) {
-            Text(text = room.name, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "Capacity: ${room.capacity}")
+            Row(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(text = "Name:  ${room.name}",      style = TextStyle(
+                    fontFamily = FontFamily.Default,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
+                ),
 
-            Spacer(modifier = Modifier.weight(1f))
+                    modifier = Modifier.padding(start = 10.dp) )
+                Text(text = "          Capacity: ${room.capacity}", style = TextStyle(
+                    fontFamily = FontFamily.Default,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
+                ))
+            }
 
             IconButton(
                 onClick = onUpdate,
@@ -193,7 +238,7 @@ fun RoomItem(
             }
 
             IconButton(
-                onClick = onDelete,
+                onClick = { showDeleteDialog = true },
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete Room")
@@ -201,6 +246,7 @@ fun RoomItem(
         }
     }
 }
+
 @Composable
 fun RoomScreen(innerPadding: PaddingValues) {
     var selectedAdmi by remember { mutableStateOf(false) }
