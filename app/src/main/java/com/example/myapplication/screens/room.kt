@@ -225,28 +225,28 @@ fun RoomItem(
                     modifier = Modifier.padding(start = 10.dp)
                 )
                 Spacer(modifier = Modifier.height(10.dp))
-              Row( verticalAlignment = Alignment.CenterVertically,
-                  modifier = Modifier.padding(start = 10.dp)) {
-                  Text(
-                      text = "capacity: ",
-                      style = TextStyle(
-                          fontFamily = FontFamily.Default,
-                          fontSize = 18.sp,
+                Row( verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 10.dp)) {
+                    Text(
+                        text = "capacity: ",
+                        style = TextStyle(
+                            fontFamily = FontFamily.Default,
+                            fontSize = 18.sp,
 
-                          color = Color.Gray
-                      ),
+                            color = Color.Gray
+                        ),
 
-                  )
-               Text(
-                    text = "${room.capacity}",
-                    style = TextStyle(
-                        fontFamily = FontFamily.Default,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    ),
+                        )
+                    Text(
+                        text = "${room.capacity}",
+                        style = TextStyle(
+                            fontFamily = FontFamily.Default,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray
+                        ),
 
-                ) }
+                        ) }
             }
 
             IconButton(

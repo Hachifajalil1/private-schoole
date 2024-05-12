@@ -160,10 +160,10 @@ fun AdminList(admins: List<Admin>, innerPadding: PaddingValues, onItemClick: (Ad
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(admins.filter {it.phone.contains(searchQuery, ignoreCase = true) ||it.name.contains(searchQuery, ignoreCase = true) ||
-                it.familyName.contains(searchQuery, ignoreCase = true) || it.email.contains(
-                    searchQuery,
-                    ignoreCase = true
-                )
+                    it.familyName.contains(searchQuery, ignoreCase = true) || it.email.contains(
+                searchQuery,
+                ignoreCase = true
+            )
             }) { admin ->
                 Card(
                     Modifier
@@ -204,6 +204,7 @@ fun AdminList(admins: List<Admin>, innerPadding: PaddingValues, onItemClick: (Ad
                                 modifier = Modifier.padding(top = 4.dp)
                             )
                         }
+
                     }
                 }
             }
@@ -260,11 +261,12 @@ fun AdminDetails(
                     FirebaseImage(url = admin.image)
                 }
 
+
                 OutlinedTextField(
                     value = familyName,
                     onValueChange = { familyName = it },
                     label = { Text("Family Name") },
-                    )
+                )
 
 
 
@@ -274,7 +276,7 @@ fun AdminDetails(
                     onValueChange = { name = it },
                     label = { Text("Name") },
 
-                )
+                    )
 
                 // حقل نصي لعرض البريد الالكتروني
                 OutlinedTextField(
@@ -282,7 +284,7 @@ fun AdminDetails(
                     onValueChange = { email = it },
                     label = { Text("Email") },
 
-                )
+                    )
 
                 // حقل نصي لعرض الهاتف
                 OutlinedTextField(
@@ -290,7 +292,7 @@ fun AdminDetails(
                     onValueChange = { phone = it },
                     label = { Text("Phone") },
 
-                )
+                    )
 
                 // حقل نصي لعرض العنوان
                 OutlinedTextField(
@@ -298,7 +300,7 @@ fun AdminDetails(
                     onValueChange = { address = it },
                     label = { Text("Address") },
 
-                )
+                    )
 
 
 
@@ -365,7 +367,7 @@ fun AdminDetails(
 
 
 
-    )
+        )
 }
 
 
@@ -393,55 +395,55 @@ fun HomeAdmins(innerPadding: PaddingValues) {
 
 
     // Selected Admin Details
-        selectedAdmin?.let { admin ->
-            AdminDetails(
-                admin = admin,
-                innerPadding = innerPadding,
-                onDeleteClick = {
-                    deleteUserData(admin.uid)
-                    selectedAdmin = null
-                    loadState = LoadState.Idle
-                },
-                onBackClick = {
-                    selectedAdmin = null
-                    loadState = LoadState.Idle
-                }, onClose = {}
-            )
-        }
+    selectedAdmin?.let { admin ->
+        AdminDetails(
+            admin = admin,
+            innerPadding = innerPadding,
+            onDeleteClick = {
+                deleteUserData(admin.uid)
+                selectedAdmin = null
+                loadState = LoadState.Idle
+            },
+            onBackClick = {
+                selectedAdmin = null
+                loadState = LoadState.Idle
+            }, onClose = {}
+        )
+    }
 
 
-        // Load data if not loaded yet
-        LaunchedEffect(loadState) {
-            if (loadState == LoadState.Idle) {
-                loadState = LoadState.Loading
-                Firebase.database.reference.child("users").child("admins")
-                    .addListenerForSingleValueEvent(object : ValueEventListener {
-                        override fun onDataChange(snapshot: DataSnapshot) {
-                            val adminsFromFirebase = mutableListOf<Admin>()
-                            for (childSnapshot in snapshot.children) {
-                                val name = childSnapshot.child("name").getValue(String::class.java) ?: ""
-                                val email = childSnapshot.child("email").getValue(String::class.java) ?: ""
-                                val uid = childSnapshot.key.toString()
-                                val address = childSnapshot.child("address").getValue(String::class.java) ?: ""
-                                val phone = childSnapshot.child("phone").getValue(String::class.java) ?: ""
-                                val familyName = childSnapshot.child("familyName").getValue(String::class.java) ?: ""
-                                val image = childSnapshot.child("image").getValue(String::class.java) ?: ""
-                                val admin = Admin(name, email, uid, address, phone, familyName, image,"admin")
-                                adminsFromFirebase.add(admin)
-                            }
-                            admins.value.clear()
-                            admins.value.addAll(adminsFromFirebase)
-                            loadState = LoadState.Loaded
+    // Load data if not loaded yet
+    LaunchedEffect(loadState) {
+        if (loadState == LoadState.Idle) {
+            loadState = LoadState.Loading
+            Firebase.database.reference.child("users").child("admins")
+                .addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        val adminsFromFirebase = mutableListOf<Admin>()
+                        for (childSnapshot in snapshot.children) {
+                            val name = childSnapshot.child("name").getValue(String::class.java) ?: ""
+                            val email = childSnapshot.child("email").getValue(String::class.java) ?: ""
+                            val uid = childSnapshot.key.toString()
+                            val address = childSnapshot.child("address").getValue(String::class.java) ?: ""
+                            val phone = childSnapshot.child("phone").getValue(String::class.java) ?: ""
+                            val familyName = childSnapshot.child("familyName").getValue(String::class.java) ?: ""
+                            val image = childSnapshot.child("image").getValue(String::class.java) ?: ""
+                            val admin = Admin(name, email, uid, address, phone, familyName, image,"admin")
+                            adminsFromFirebase.add(admin)
                         }
+                        admins.value.clear()
+                        admins.value.addAll(adminsFromFirebase)
+                        loadState = LoadState.Loaded
+                    }
 
-                        override fun onCancelled(error: DatabaseError) {
-                            Log.w(ContentValues.TAG, "Failed to read value.", error.toException())
-                            loadState = LoadState.Loaded // Handle this differently
-                        }
-                    })
-            }
+                    override fun onCancelled(error: DatabaseError) {
+                        Log.w(ContentValues.TAG, "Failed to read value.", error.toException())
+                        loadState = LoadState.Loaded // Handle this differently
+                    }
+                })
         }
     }
+}
 
 
 // Firebase Realtime Database instance
@@ -665,6 +667,7 @@ fun AddAdminForm() {
         }
     }
 }
+
 
 
 
