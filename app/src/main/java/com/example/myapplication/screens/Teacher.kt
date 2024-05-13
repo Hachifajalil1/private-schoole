@@ -96,6 +96,17 @@ data class Teacher(
     val role: String="",
     val coursesTaught: List<String> = emptyList(),
 )
+data class TeacherCreatUser(
+    val familyname: String = "",
+    val name: String = "",
+    val email: String = "",
+    val address: String ="",
+    var image: String = "",
+    val phone: String = "",
+    val role: String="",
+    val courses: List<String> = emptyList(),
+)
+
 
 @Composable
 fun TeacherScreen(innerPadding: PaddingValues) {
@@ -136,7 +147,7 @@ fun RoomLis(
     var rooms by remember { mutableStateOf(listOf<Teacher>()) }
     var searchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
-
+    var showAddTeacherForm by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         val database = Firebase.database
         val roomsRef = database.getReference("users").child("teachers")
@@ -184,22 +195,16 @@ fun RoomLis(
                 modifier = Modifier.weight(1f)
             )
             IconButton(
-                onClick = { showAddDialog = true },
-                modifier = Modifier.padding(start = 8.dp)
+                onClick = { showAddTeacherForm = true }
             ) {
-                Icon(Icons.Default.AddCircle, contentDescription = "Add Room")
+                Icon(Icons.Default.AddCircle, contentDescription = "Add admin" +
+                        "")
             }
         }
 
-        if (showAddDialog) {
-            RoomAdd(
-                onAddRoom = {
-                    addRoomDatabase(it.roomName, it.capacity)
-                },
-                onCloseDialog = {
-                    showAddDialog = false
-                }
-            )
+        if (showAddTeacherForm) {
+            AddTeacherForm(onDismiss = { showAddTeacherForm = false })
+
         }
 
         LazyColumn(
@@ -514,3 +519,187 @@ fun updateTeacherData(uid: String, familyName: String, name: String, email: Stri
             // حدث خطأ أثناء التحديث
         }
 }
+
+
+@Composable
+fun AddTeacherForm(onDismiss: () -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var familyName by remember { mutableStateOf("") }
+    var image by remember { mutableStateOf("") }
+    var selectImage by remember { mutableStateOf<String?>(null) }
+    var imageSelect by remember { mutableStateOf(false) }
+    var courses by remember { mutableStateOf(("")) }
+
+    val isEmailEmpty = email.isEmpty()
+    val isPasswordEmpty = password.isEmpty()
+    val isEmailValid by remember(email) {
+        mutableStateOf(android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())
+    }
+
+    val getContent =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let {
+                selectImage = uri.toString()
+                imageSelect = true
+            }
+        }
+    AlertDialog(
+        onDismissRequest = {  onDismiss()  },
+        title = { Text("Add New Teacher") },
+        text = {
+    Column(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Button(
+            onClick = {
+                getContent.launch("image/*")
+            },
+            modifier = Modifier.padding(8.dp)
+        ) {
+            Text(if (selectImage != null) "Selected Image" else "Select Image")
+        }
+
+        OutlinedTextField(
+            value = familyName,
+            onValueChange = { familyName = it },
+            label = { Text("Family Name") }
+        )
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Name") }
+        )
+        OutlinedTextField(
+            value = courses,
+            onValueChange = { courses = it },
+            label = { Text("Courses") }
+        )
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email *") },
+            isError = isEmailEmpty || !isEmailValid,
+            textStyle = if (isEmailEmpty || !isEmailValid) LocalTextStyle.current.copy(color = Color.Red) else LocalTextStyle.current
+        )
+        if (!isEmailValid && email.isNotEmpty()) {
+            Text(
+                text = "Invalid Email Format",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.Red,
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password *") },
+            visualTransformation = PasswordVisualTransformation(),
+            isError = isPasswordEmpty,
+            textStyle = if (isPasswordEmpty) LocalTextStyle.current.copy(color = Color.Red) else LocalTextStyle.current
+        )
+        OutlinedTextField(
+            value = phone,
+            onValueChange = { phone = it },
+            label = { Text("Phone") }
+        )
+        OutlinedTextField(
+            value = address,
+            onValueChange = { address = it },
+            label = { Text("Address") }
+        )
+
+
+
+
+
+    }},
+        confirmButton = {
+            Button(
+                onClick = {
+                    val updatedCourses = courses.split(" ").map { it.trim() }
+
+                    if (email.isEmpty() || password.isEmpty() || !isEmailValid) {
+                        // Handle empty or invalid email or password
+                        return@Button
+                    }
+                    val adminA = TeacherCreatUser(
+                        familyName,
+                        name,
+                        email,
+                        address,
+                        "",
+                        phone,
+                        "teacher",
+                        updatedCourses
+                    )
+
+                    FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                val user = task.result?.user
+                                if (user != null) {
+                                    val uid = user.uid
+                                    if (imageSelect) {
+                                        val storageRef =
+                                            Firebase.storage.reference.child("images/ProfileUsers/${uid}")
+                                        val uploadTask = storageRef.putFile(Uri.parse(selectImage))
+
+                                        uploadTask.addOnCompleteListener { uploadTask ->
+                                            if (uploadTask.isSuccessful) {
+                                                storageRef.downloadUrl.addOnCompleteListener { downloadUrlTask ->
+                                                    if (downloadUrlTask.isSuccessful) {
+                                                        val downloadUri = downloadUrlTask.result
+                                                        val imageUrl = downloadUri.toString()
+                                                        adminA.image = imageUrl
+
+                                                        FirebaseDatabase.getInstance()
+                                                            .reference.child("users").child("teachers")
+                                                            .child(uid).setValue(adminA)
+                                                    }
+                                                }
+                                            } else {
+                                                uploadTask.exception?.let {
+                                                    // Handle the exception
+                                                }
+                                            }
+                                        }
+                                    } else {
+
+
+                                        FirebaseDatabase.getInstance().reference.child("users")
+                                            .child("teachers").child(uid).setValue(adminA)
+                                    }
+
+                                    name = ""
+                                    email = ""
+                                    password = ""
+                                    address = ""
+                                    phone = ""
+                                    familyName = ""
+                                    image = ""
+                                }
+                            } else {
+                                // Handle registration failure
+                            }
+                        }
+
+                }
+            ) {
+                Text("Add")
+            }
+        }
+    )
+}
+
+
+
+
