@@ -106,6 +106,12 @@ class MainActivity : ComponentActivity() {
                         selectedIcon = Icons.Filled.Edit,
                         unSelectedIcon = Icons.Outlined.AccountCircle,
                     ),
+                    NavigationItem(
+                        title = "Level",
+                        route = Screens.LevelGroup.route,
+                        selectedIcon = Icons.Filled.Edit,
+                        unSelectedIcon = Icons.Outlined.AccountCircle,
+                    ),
                 )
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()

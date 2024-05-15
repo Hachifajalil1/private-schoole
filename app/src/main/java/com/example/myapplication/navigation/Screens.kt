@@ -15,4 +15,5 @@ sealed class Screens(var route: String) {
     object  HomeAdmins : Screens("HomeAdmins")
     object  Room : Screens("room")
     object Teacher : Screens("teacher")
+    object LevelGroup : Screens("LevelGroup")
 }
