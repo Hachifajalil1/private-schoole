@@ -3,6 +3,7 @@ package com.example.myapplication
 import android.content.Context
 import android.util.Log // استيراد مكتبة Log من Android
 import android.widget.Toast // استيراد مكتبة Toast من Android
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement // استيراد مكتبة Arrangement من compose.foundation.layout
 import androidx.compose.foundation.layout.Column // استيراد مكتبة Column من compose.foundation.layout
 import androidx.compose.foundation.layout.PaddingValues // استيراد مكتبة PaddingValues من compose.foundation.layout
@@ -46,19 +47,27 @@ import com.google.firebase.database.DatabaseError // استيراد مكتبة D
 import com.google.firebase.database.ValueEventListener // استيراد مكتبة ValueEventListener من com.google.firebase.database
 import com.google.firebase.database.database // استيراد مكتبة database من com.google.firebase.database
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.ArrowForward
 
+// البيانات الأساسية لتعريف المستوى والمجموعة
 data class Level(val id: String, val name: String)
+data class Group(val id: String, var name: String)
+
+// دالة Composable لعرض قائمة المستويات
 @Composable
 fun LevelList(
     innerPadding: PaddingValues,
     onClickAdd: () -> Unit,
     onDeleteRoom: (Level) -> Unit,
-    onUpdateRoom: (Level) -> Unit
+    onUpdateRoom: (Level) -> Unit,
+    onSelectRoom: (Level) -> Unit
 ) {
+    // المتغيرات لحفظ حالة الغرف والبحث وعرض نافذة الإضافة
     var rooms by remember { mutableStateOf(listOf<Level>()) }
     var searchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
 
+    // تحميل البيانات من Firebase عند إنشاء المكون
     LaunchedEffect(Unit) {
         val database = Firebase.database
         val roomsRef = database.getReference("users/students")
@@ -68,7 +77,6 @@ fun LevelList(
                 val updatedRooms = snapshot.children.mapNotNull { roomSnapshot ->
                     val id = roomSnapshot.key.orEmpty()
                     val name = roomSnapshot.child("name").getValue(String::class.java).orEmpty()
-
                     Level(id, name)
                 }
                 rooms = updatedRooms
@@ -80,12 +88,12 @@ fun LevelList(
         })
     }
 
+    // واجهة المستخدم لعرض المستويات
     Column(modifier = Modifier.padding(innerPadding)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(bottom = 40.dp, start = 8.dp,top=50.dp)
+            modifier = Modifier.padding(bottom = 16.dp, start = 8.dp, top = 16.dp)
         ) {
-
             IconButton(
                 onClick = { /* Perform search action */ }
             ) {
@@ -107,12 +115,8 @@ fun LevelList(
 
         if (showAddDialog) {
             LevelAdd(
-                onAddRoom = {
-                    addLevelDatabase(it.roomName)
-                },
-                onCloseDialog = {
-                    showAddDialog = false
-                }
+                onAddRoom = { addLevelDatabase(it.roomName) },
+                onCloseDialog = { showAddDialog = false }
             )
         }
 
@@ -127,19 +131,21 @@ fun LevelList(
                 LevelItem(
                     room = room,
                     onDelete = { onDeleteRoom(room) },
-                    onUpdate = { onUpdateRoom(room) }
+                    onUpdate = { onUpdateRoom(room) },
+                    onClick = { onSelectRoom(room) }
                 )
             }
         }
     }
 }
 
+// مكون لعرض عنصر المستوى
 @Composable
-
 fun LevelItem(
     room: Level,
     onDelete: () -> Unit,
-    onUpdate: () -> Unit
+    onUpdate: () -> Unit,
+    onClick: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -169,18 +175,17 @@ fun LevelItem(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = { /* Handle click event */ }
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(10.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            )    {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${room.name}",
+                    text = room.name,
                     style = TextStyle(
                         fontFamily = FontFamily.Default,
                         fontSize = 24.sp,
@@ -189,49 +194,143 @@ fun LevelItem(
                     ),
                     modifier = Modifier.padding(start = 10.dp)
                 )
-
             }
-
-            IconButton(
-                onClick = onUpdate,
-                modifier = Modifier.size(40.dp)
-            ) {
+            IconButton(onClick = onUpdate, modifier = Modifier.size(40.dp)) {
                 Icon(Icons.Default.Edit, contentDescription = "Edit Room")
             }
-
-            IconButton(
-                onClick = { showDeleteDialog = true },
-                modifier = Modifier.size(40.dp)
-            ) {
+            IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(40.dp)) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete Room")
             }
         }
     }
 }
 
+// دالة Composable لعرض قائمة المستويات والمجموعات
 @Composable
 fun LevelGroup(innerPadding: PaddingValues) {
-    var selectedAdmi by remember { mutableStateOf(false) }
+    var selectedAdmin by remember { mutableStateOf(false) }
     val context = LocalContext.current
     var showEditDialog by remember { mutableStateOf(false) }
     var selectedRoom: Level? by remember { mutableStateOf(null) }
+    var rooms by remember { mutableStateOf(listOf<Level>()) }
+    var groups by remember { mutableStateOf(mapOf<String, List<Group>>()) }
+    var selectedGroups by remember { mutableStateOf<List<Group>>(emptyList()) }
+    var selectedLevel by remember { mutableStateOf<Level?>(null) }
+    var searchGroupQuery by remember { mutableStateOf("") }
+    var showAddGroupDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val database = Firebase.database
+        val roomsRef = database.getReference("users/students")
+
+        roomsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val updatedRooms = snapshot.children.mapNotNull { roomSnapshot ->
+                    val id = roomSnapshot.key.orEmpty()
+                    val name = roomSnapshot.child("name").getValue(String::class.java).orEmpty()
+                    Level(id, name)
+                }
+                rooms = updatedRooms
+
+                updatedRooms.forEach { room ->
+                    val groupsRef = database.getReference("users/students/${room.id}/groups")
+                    groupsRef.addValueEventListener(object : ValueEventListener {
+                        override fun onDataChange(groupsSnapshot: DataSnapshot) {
+                            val groupList = groupsSnapshot.children.mapNotNull { groupSnapshot ->
+                                val groupId = groupSnapshot.key.orEmpty()
+                                val groupName = groupSnapshot.child("name").getValue(String::class.java).orEmpty()
+                                Group(groupId, groupName)
+                            }
+                            groups += (room.id to groupList)
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                            Log.e("GroupList", "Error loading groups for room ${room.id}", error.toException())
+                        }
+                    })
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("RoomList", "Error loading rooms", error.toException())
+            }
+        })
+    }
 
     Column {
-        LevelList(
-            innerPadding = innerPadding,
-            onClickAdd = {},
-            onDeleteRoom = { room -> deleteLevelDatabase(context, room) },
-            onUpdateRoom = { room ->
-                showEditDialog = true
-                selectedRoom = room
+        if (selectedLevel == null) {
+            LevelList(
+                innerPadding = innerPadding,
+                onClickAdd = {},
+                onDeleteRoom = { room -> deleteLevelDatabase(context, room) },
+                onUpdateRoom = { room ->
+                    showEditDialog = true
+                    selectedRoom = room
+                },
+                onSelectRoom = { room ->
+                    selectedLevel = room
+                    selectedGroups = groups[room.id].orEmpty()
+                }
+            )
+        } else {
+            Column(modifier = Modifier.padding(innerPadding)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    IconButton(
+                        onClick = { /* Perform search action */ }
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    }
+                    OutlinedTextField(
+                        value = searchGroupQuery,
+                        onValueChange = { searchGroupQuery = it },
+                        label = { Text("Search Groups ${selectedLevel!!.name}") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = { showAddGroupDialog = true },
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
+                        Icon(Icons.Default.AddCircle, contentDescription = "Add Group")
+                    }
+                }
+
+                if (showAddGroupDialog) {
+                    GroupAdd(
+                        onAddGroup = { addGroupDatabase(selectedLevel!!.id, it.groupName) },
+                        onCloseDialog = { showAddGroupDialog = false }
+                    )
+                }
+
+                val filteredGroups = selectedGroups.filter { group ->
+                    group.name.contains(searchGroupQuery, ignoreCase = true)
+                }
+
+                LazyColumn(
+                    contentPadding = PaddingValues(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(filteredGroups) { group ->
+                        GroupItem(
+                            group = group,
+                            onDelete = { deleteGroupDatabase(selectedLevel!!.id, group) },
+                            onUpdate = { updateGroupDatabase(selectedLevel!!.id, group) }
+                        )
+                    }
+                }
+                IconButton(onClick = { selectedLevel = null }, modifier = Modifier.size(40.dp).align(Alignment.End).padding(top = 16.dp)) {
+                    Icon(Icons.Default.ArrowForward, contentDescription = "Back to Levels")
+                }
+
             }
-        )
+        }
     }
 
     if (showEditDialog && selectedRoom != null) {
         LevelUpdateDialog(
             room = selectedRoom!!,
-
             onCloseDialog = {
                 showEditDialog = false
                 selectedRoom = null
@@ -241,34 +340,133 @@ fun LevelGroup(innerPadding: PaddingValues) {
 }
 
 
-
-data class LevelData(val roomName: String)
+// مكون لعرض عنصر المجموعة
 @Composable
-fun LevelAdd(onAddRoom: (LevelData) -> Unit, onCloseDialog: () -> Unit) {
-    var roomName by remember { mutableStateOf("") }
 
+fun GroupItem(
+    group: Group,
+    onDelete: () -> Unit,
+    onUpdate: () -> Unit
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var updatedGroupName by remember { mutableStateOf(group.name) } // تخزين اسم المجموعة المحدث
+
+    if (showDeleteDialog) {
+        // حوار الحذف
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Confirm Delete") },
+            text = { Text("Are you sure you want to delete this group?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDelete()
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showUpdateDialog) {
+        // حوار التحديث
+        AlertDialog(
+            onDismissRequest = { showUpdateDialog = false },
+            title = { Text("Update Group Name") },
+            text = {
+                OutlinedTextField(
+                    value = updatedGroupName,
+                    onValueChange = { updatedGroupName = it },
+                    label = { Text("New Group Name") }
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // تحديث اسم المجموعة بعد الضغط على زر التحديث
+                        group.name = updatedGroupName
+                        onUpdate() // استدعاء دالة التحديث
+                        showUpdateDialog = false
+                    }
+                ) {
+                    Text("Update")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showUpdateDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showUpdateDialog = true },
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(10.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = group.name,
+                    style = TextStyle(
+                        fontFamily = FontFamily.Default,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = Color.Black
+                    ),
+                    modifier = Modifier.padding(start = 10.dp)
+                )
+            }
+            IconButton(onClick = { showUpdateDialog = true }, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit Group")
+            }
+            IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete Group")
+            }
+        }
+    }
+}
+
+// مكون لإضافة مجموعة جديدة
+@Composable
+fun GroupAdd(onAddGroup: (GroupData) -> Unit, onCloseDialog: () -> Unit) {
+    var groupName by remember { mutableStateOf("") }
 
     AlertDialog(
-        onDismissRequest = { onCloseDialog() }, // إغلاق الحوار عند النقر خارجه
-        title = { Text(text = "Add Class Room") },
+        onDismissRequest = { onCloseDialog() },
+        title = { Text("Add Group") },
         text = {
             Column {
                 OutlinedTextField(
-                    value = roomName,
-                    onValueChange = { roomName = it },
-                    label = { Text("Room Name") }
+                    value = groupName,
+                    onValueChange = { groupName = it },
+                    label = { Text("Group Name") }
                 )
-
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    if (roomName.isNotBlank() ) {
-                        onAddRoom(LevelData(roomName))
-                        roomName = ""
-
-                        onCloseDialog() // إغلاق الحوار بعد إضافة الغرفة بنجاح
+                    if (groupName.isNotBlank()) {
+                        onAddGroup(GroupData(groupName))
+                        groupName = ""
+                        onCloseDialog()
                     }
                 }
             ) {
@@ -278,38 +476,77 @@ fun LevelAdd(onAddRoom: (LevelData) -> Unit, onCloseDialog: () -> Unit) {
     )
 }
 
+// مكون لتحديث بيانات مجموعة
+@Composable
+fun GroupUpdateDialog(
+    group: Group,
+    onUpdateGroup: (String) -> Unit,
+    onCloseDialog: () -> Unit
+) {
+    var groupName by remember { mutableStateOf(group.name) }
 
-
-
-fun addLevelDatabase(roomName: String) {
-    val database = Firebase.database
-    val roomsRef = database.getReference("users/students")
-
-    // Generate a unique key for the new room
-    val newRoomRef = roomsRef.push()
-
-    // Set the room data
-    newRoomRef.setValue(mapOf("name" to roomName))
-}
-
-fun deleteLevelDatabase(context: Context, room: Level) {
-    val database = Firebase.database
-    val roomsRef = database.getReference("users/students").child(room.id)
-    roomsRef.removeValue()
-    Toast.makeText(context, "Room deleted", Toast.LENGTH_SHORT).show()
-}
-
-fun updateLevelDatabase( id: String,name: String) {
-    val database = Firebase.database
-    val roomsRef = database.getReference("users/students").child(id)
-
-    // Update the room data
-    val updates = mapOf<String, Any>(
-        "name" to name
+    AlertDialog(
+        onDismissRequest = { onCloseDialog() },
+        title = { Text("Update Group") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = groupName,
+                    onValueChange = { groupName = it },
+                    label = { Text("Group Name") }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (groupName.isNotBlank()) {
+                        onUpdateGroup(groupName)
+                        onCloseDialog()
+                    }
+                }
+            ) {
+                Text("Update")
+            }
+        }
     )
-    roomsRef.updateChildren(updates)
 }
 
+// البيانات الأساسية لإضافة مجموعة
+data class GroupData(val groupName: String)
+
+// دالة لإضافة مجموعة جديدة في قاعدة البيانات
+fun addGroupDatabase(levelId: String, groupName: String) {
+    val database = Firebase.database
+    val groupsRef = database.getReference("users/students/$levelId/groups")
+
+    // إنشاء مرجع جديد لمجموعة جديدة
+    val newGroupRef = groupsRef.push()
+
+    // ضبط بيانات المجموعة الجديدة
+    newGroupRef.setValue(mapOf("name" to groupName))
+}
+
+// دالة لحذف مجموعة من قاعدة البيانات
+fun deleteGroupDatabase(levelId: String, group: Group) {
+    val database = Firebase.database
+    val groupsRef = database.getReference("users/students/$levelId/groups").child(group.id)
+    groupsRef.removeValue()
+}
+
+// دالة لتحديث بيانات مجموعة في قاعدة البيانات
+fun updateGroupDatabase(levelId: String, group: Group) {
+    val database = Firebase.database
+    val groupsRef = database.getReference("users/students/$levelId/groups").child(group.id)
+
+    // تحديث بيانات المجموعة
+    val updates = mapOf<String, Any>(
+        "name" to group.name
+    )
+    groupsRef.updateChildren(updates)
+}
+
+// مكون لتحديث بيانات مستوى
 @Composable
 fun LevelUpdateDialog(
     room: Level,
@@ -317,10 +554,9 @@ fun LevelUpdateDialog(
 ) {
     var roomName by remember { mutableStateOf(room.name) }
 
-
     AlertDialog(
         onDismissRequest = { onCloseDialog() },
-        title = { Text(text = "Update Class Room") },
+        title = { Text("Update Class Room") },
         text = {
             Column {
                 OutlinedTextField(
@@ -328,14 +564,12 @@ fun LevelUpdateDialog(
                     onValueChange = { roomName = it },
                     label = { Text("Room Name") }
                 )
-
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (roomName.isNotBlank()) {
-                        // Move the updateRoomDatabase call here
                         updateLevelDatabase(room.id, roomName)
                         onCloseDialog()
                     }
@@ -344,9 +578,74 @@ fun LevelUpdateDialog(
                 Text("Update")
             }
         }
-
     )
 }
+
+// مكون لإضافة مستوى جديد
+@Composable
+fun LevelAdd(onAddRoom: (LevelData) -> Unit, onCloseDialog: () -> Unit) {
+    var roomName by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = { onCloseDialog() },
+        title = { Text("Add Class Room") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = roomName,
+                    onValueChange = { roomName = it },
+                    label = { Text("Room Name") }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (roomName.isNotBlank()) {
+                        onAddRoom(LevelData(roomName))
+                        roomName = ""
+                        onCloseDialog()
+                    }
+                }
+            ) {
+                Text("Add")
+            }
+        }
+    )
+}
+
+// البيانات الأساسية لإضافة مستوى
+data class LevelData(val roomName: String)
+
+// دالة لإضافة مستوى جديد في قاعدة البيانات
+fun addLevelDatabase(roomName: String) {
+    val database = Firebase.database
+    val roomsRef = database.getReference("users/students")
+
+    val newRoomRef = roomsRef.push()
+
+    newRoomRef.setValue(mapOf("name" to roomName))
+}
+
+// دالة لحذف مستوى من قاعدة البيانات
+fun deleteLevelDatabase(context: Context, room: Level) {
+    val database = Firebase.database
+    val roomsRef = database.getReference("users/students").child(room.id)
+    roomsRef.removeValue()
+    Toast.makeText(context, "Room deleted", Toast.LENGTH_SHORT).show()
+}
+
+// دالة لتحديث بيانات مستوى في قاعدة البيانات
+fun updateLevelDatabase(id: String, name: String) {
+    val database = Firebase.database
+    val roomsRef = database.getReference("users/students").child(id)
+
+    val updates = mapOf<String, Any>("name" to name)
+    roomsRef.updateChildren(updates)
+}
+
+
+
 
 /*
 /*

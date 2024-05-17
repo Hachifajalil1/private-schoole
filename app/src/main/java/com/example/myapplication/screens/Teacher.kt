@@ -1,38 +1,26 @@
 package com.example.myapplication
 
-import android.content.ContentValues // استيراد مكتبة ContentValues من Android
 import android.content.Context
 import android.net.Uri // استيراد مكتبة Uri من Android
 import android.util.Log // استيراد مكتبة Log من Android
 import android.widget.Toast // استيراد مكتبة Toast من Android
 import androidx.activity.compose.rememberLauncherForActivityResult // استيراد مكتبة rememberLauncherForActivityResult من Android
-import androidx.activity.result.ActivityResultLauncher // استيراد مكتبة ActivityResultLauncher من Android
 import androidx.activity.result.contract.ActivityResultContracts // استيراد مكتبة ActivityResultContracts من Android
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background // استيراد مكتبة background من compose.foundation
-import androidx.compose.foundation.clickable // استيراد مكتبة clickable من compose.foundation
 import androidx.compose.foundation.layout.Arrangement // استيراد مكتبة Arrangement من compose.foundation.layout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column // استيراد مكتبة Column من compose.foundation.layout
 import androidx.compose.foundation.layout.PaddingValues // استيراد مكتبة PaddingValues من compose.foundation.layout
 import androidx.compose.foundation.layout.Row // استيراد مكتبة Row من compose.foundation.layout
 import androidx.compose.foundation.layout.Spacer // استيراد مكتبة Spacer من compose.foundation.layout
-import androidx.compose.foundation.layout.fillMaxSize // استيراد مكتبة fillMaxSize من compose.foundation.layout
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height // استيراد مكتبة height من compose.foundation.layout
 import androidx.compose.foundation.layout.padding // استيراد مكتبة padding من compose.foundation.layout
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width // استيراد مكتبة width من compose.foundation.layout
 import androidx.compose.foundation.lazy.LazyColumn // استيراد مكتبة LazyColumn من compose.foundation.lazy
 import androidx.compose.foundation.lazy.items // استيراد مكتبة items من compose.foundation.lazy
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons // استيراد مكتبة Icons من compose.material.icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack // استيراد مكتبة ArrowBack من compose.material.icons.filled
-import androidx.compose.material.icons.filled.Check // استيراد مكتبة Check من compose.material.icons.filled
 import androidx.compose.material.icons.filled.Delete // استيراد مكتبة Delete من compose.material.icons.filled
 import androidx.compose.material.icons.filled.Edit // استيراد مكتبة Edit من compose.material.icons.filled
 import androidx.compose.material.icons.filled.Search
@@ -45,20 +33,15 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text // استيراد مكتبة Text من compose.material3
-import androidx.compose.material3.TextField // استيراد مكتبة TextField من compose.material3
 import androidx.compose.runtime.Composable // استيراد مكتبة Composable من compose.runtime
 import androidx.compose.runtime.LaunchedEffect // استيراد مكتبة LaunchedEffect من compose.runtime
 import androidx.compose.runtime.getValue // استيراد مكتبة getValue من compose.runtime
 import androidx.compose.runtime.mutableStateOf // استيراد مكتبة mutableStateOf من compose.runtime
 import androidx.compose.runtime.remember // استيراد مكتبة remember من compose.runtime
-import androidx.compose.runtime.rememberCoroutineScope // استيراد مكتبة rememberCoroutineScope من compose.runtime
 import androidx.compose.runtime.setValue // استيراد مكتبة setValue من compose.runtime
 import androidx.compose.ui.Alignment // استيراد مكتبة Alignment من compose.ui
 import androidx.compose.ui.Modifier // استيراد مكتبة Modifier من compose.ui
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color // استيراد مكتبة Color من compose.ui
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext // استيراد مكتبة LocalContext من compose.ui.platform
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -119,7 +102,7 @@ fun TeacherScreen(innerPadding: PaddingValues) {
         RoomLis(
             innerPadding = innerPadding,
             onClickAdd = {},
-            onDeleteRoom = {  },
+            onDeleteRoom = {  room -> deleteTeacherDatabase(context, room)},
             onUpdateRoom = {
             }
         )
@@ -702,4 +685,9 @@ fun AddTeacherForm(onDismiss: () -> Unit) {
 
 
 
-
+fun deleteTeacherDatabase(context: Context, room: Teacher) {
+    val database = Firebase.database
+    val roomsRef = database.getReference("users/teachers").child(room.id)
+    roomsRef.removeValue()
+    Toast.makeText(context, "Teacher deleted", Toast.LENGTH_SHORT).show()
+}
