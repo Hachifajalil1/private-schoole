@@ -70,7 +70,7 @@ fun LevelList(
     // تحميل البيانات من Firebase عند إنشاء المكون
     LaunchedEffect(Unit) {
         val database = Firebase.database
-        val roomsRef = database.getReference("users/students")
+        val roomsRef = database.getReference("levels")
 
         roomsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -221,7 +221,7 @@ fun LevelGroup(innerPadding: PaddingValues) {
 
     LaunchedEffect(Unit) {
         val database = Firebase.database
-        val roomsRef = database.getReference("users/students")
+        val roomsRef = database.getReference("levels")
 
         roomsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -233,7 +233,7 @@ fun LevelGroup(innerPadding: PaddingValues) {
                 rooms = updatedRooms
 
                 updatedRooms.forEach { room ->
-                    val groupsRef = database.getReference("users/students/${room.id}/groups")
+                    val groupsRef = database.getReference("levels/${room.id}/groups")
                     groupsRef.addValueEventListener(object : ValueEventListener {
                         override fun onDataChange(groupsSnapshot: DataSnapshot) {
                             val groupList = groupsSnapshot.children.mapNotNull { groupSnapshot ->
@@ -518,7 +518,7 @@ data class GroupData(val groupName: String)
 // دالة لإضافة مجموعة جديدة في قاعدة البيانات
 fun addGroupDatabase(levelId: String, groupName: String) {
     val database = Firebase.database
-    val groupsRef = database.getReference("users/students/$levelId/groups")
+    val groupsRef = database.getReference("levels/$levelId/groups")
 
     // إنشاء مرجع جديد لمجموعة جديدة
     val newGroupRef = groupsRef.push()
@@ -530,14 +530,14 @@ fun addGroupDatabase(levelId: String, groupName: String) {
 // دالة لحذف مجموعة من قاعدة البيانات
 fun deleteGroupDatabase(levelId: String, group: Group) {
     val database = Firebase.database
-    val groupsRef = database.getReference("users/students/$levelId/groups").child(group.id)
+    val groupsRef = database.getReference("levels/$levelId/groups").child(group.id)
     groupsRef.removeValue()
 }
 
 // دالة لتحديث بيانات مجموعة في قاعدة البيانات
 fun updateGroupDatabase(levelId: String, group: Group) {
     val database = Firebase.database
-    val groupsRef = database.getReference("users/students/$levelId/groups").child(group.id)
+    val groupsRef = database.getReference("levels/$levelId/groups").child(group.id)
 
     // تحديث بيانات المجموعة
     val updates = mapOf<String, Any>(
@@ -620,7 +620,7 @@ data class LevelData(val roomName: String)
 // دالة لإضافة مستوى جديد في قاعدة البيانات
 fun addLevelDatabase(roomName: String) {
     val database = Firebase.database
-    val roomsRef = database.getReference("users/students")
+    val roomsRef = database.getReference("levels")
 
     val newRoomRef = roomsRef.push()
 
@@ -630,7 +630,7 @@ fun addLevelDatabase(roomName: String) {
 // دالة لحذف مستوى من قاعدة البيانات
 fun deleteLevelDatabase(context: Context, room: Level) {
     val database = Firebase.database
-    val roomsRef = database.getReference("users/students").child(room.id)
+    val roomsRef = database.getReference("levels").child(room.id)
     roomsRef.removeValue()
     Toast.makeText(context, "Room deleted", Toast.LENGTH_SHORT).show()
 }
@@ -638,7 +638,7 @@ fun deleteLevelDatabase(context: Context, room: Level) {
 // دالة لتحديث بيانات مستوى في قاعدة البيانات
 fun updateLevelDatabase(id: String, name: String) {
     val database = Firebase.database
-    val roomsRef = database.getReference("users/students").child(id)
+    val roomsRef = database.getReference("levels").child(id)
 
     val updates = mapOf<String, Any>("name" to name)
     roomsRef.updateChildren(updates)

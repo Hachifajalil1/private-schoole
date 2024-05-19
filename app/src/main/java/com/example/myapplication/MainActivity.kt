@@ -82,17 +82,18 @@ class MainActivity : ComponentActivity() {
                         selectedIcon = Icons.Filled.Settings,
                         unSelectedIcon = Icons.Outlined.Settings,
                     ),
-                    NavigationItem(
-                        title = "Share",
-                        route = "share",
-                        selectedIcon = Icons.Filled.Share,
-                        unSelectedIcon = Icons.Outlined.Share,
-                    ),
+
                     NavigationItem(
                         title = "Admins",
                         route = Screens.HomeAdmins.route,
                         selectedIcon = Icons.Filled.AccountBox,
                         unSelectedIcon = Icons.Outlined.AccountCircle,
+                    ),
+                    NavigationItem(
+                        title = "Students",
+                        route = Screens.Students.route,
+                        selectedIcon = Icons.Filled.Person,
+                        unSelectedIcon = Icons.Outlined.Person,
                     ),
                     NavigationItem(
                         title = "Room",
@@ -112,6 +113,19 @@ class MainActivity : ComponentActivity() {
                         selectedIcon = Icons.Filled.Edit,
                         unSelectedIcon = Icons.Outlined.AccountCircle,
                     ),
+                    NavigationItem(
+                        title = "Parents",
+                        route = Screens.Parents.route,
+                        selectedIcon = Icons.Filled.Edit,
+                        unSelectedIcon = Icons.Outlined.AccountCircle,
+                    ),
+                    NavigationItem(
+                        title = "Share",
+                        route = "share",
+                        selectedIcon = Icons.Filled.Share,
+                        unSelectedIcon = Icons.Outlined.Share,
+                    ),
+
                 )
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
