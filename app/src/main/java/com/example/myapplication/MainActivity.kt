@@ -70,15 +70,15 @@ class MainActivity : ComponentActivity() {
                         unSelectedIcon = Icons.Outlined.Person,
                     ),
                     NavigationItem(
-                        title = "Notification",
-                        route = Screens.Notification.route,
+                        title = "Courses",
+                        route = Screens.Courses.route,
                         selectedIcon = Icons.Filled.Notifications,
                         unSelectedIcon = Icons.Outlined.Notifications,
-                        badgeCount = 9
+
                     ),
                     NavigationItem(
-                        title = "Setting",
-                        route = Screens.Setting.route,
+                        title = "Timetable",
+                        route = Screens.Timetable.route,
                         selectedIcon = Icons.Filled.Settings,
                         unSelectedIcon = Icons.Outlined.Settings,
                     ),
@@ -200,7 +200,7 @@ class MainActivity : ComponentActivity() {
                                         onClick = { /* Handle another action */ },
                                         modifier = Modifier.padding(end = 0.dp)
                                     ) {
-                                        Icon(Icons.Default.MoreVert, contentDescription = "More")
+                                        Icon(Icons.Default.Edit, contentDescription = "More")
                                     }
                                 })
                         }

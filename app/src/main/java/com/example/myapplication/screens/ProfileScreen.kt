@@ -17,19 +17,5 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun ProfileScreen(innerPadding: PaddingValues) {
-    Column(
-        modifier = Modifier
-            .padding(innerPadding)
-            .fillMaxSize()
-            .background(Color.Green),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Profile Screen",
-            fontSize = 40.sp,
-            color = Color.Black
 
-        )
-    }
 }

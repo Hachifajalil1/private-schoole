@@ -63,7 +63,10 @@ import com.google.firebase.database.getValue // استيراد مكتبة getVal
 import com.google.firebase.storage.storage // استيراد مكتبة storage من com.google.firebase.storage
 import android.graphics.drawable.shapes.OvalShape;
 import android.net.LinkAddress
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.semantics.Role
 import androidx.room.Update
@@ -129,8 +132,8 @@ fun RoomLis(
 ) {
     var rooms by remember { mutableStateOf(listOf<Teacher>()) }
     var searchQuery by remember { mutableStateOf("") }
-    var showAddDialog by remember { mutableStateOf(false) }
     var showAddTeacherForm by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         val database = Firebase.database
         val roomsRef = database.getReference("users").child("teachers")
@@ -149,7 +152,7 @@ fun RoomLis(
                     val coursesTaught = coursesTaughtSnapshot.children.mapNotNull { courseSnapshot ->
                         courseSnapshot.getValue(String::class.java)
                     }
-                    Teacher(id, familyName, name, email, address,image,phone, "teacher", coursesTaught)
+                    Teacher(id, familyName, name, email, address, image, phone, "teacher", coursesTaught)
                 }
                 rooms = updatedRooms
             }
@@ -163,9 +166,8 @@ fun RoomLis(
     Column(modifier = Modifier.padding(innerPadding)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(bottom = 40.dp, start = 8.dp,top=50.dp)
+            modifier = Modifier.padding(bottom = 40.dp, start = 8.dp, top = 50.dp)
         ) {
-
             IconButton(
                 onClick = { /* Perform search action */ }
             ) {
@@ -180,26 +182,22 @@ fun RoomLis(
             IconButton(
                 onClick = { showAddTeacherForm = true }
             ) {
-                Icon(Icons.Default.AddCircle, contentDescription = "Add admin" +
-                        "")
+                Icon(Icons.Default.AddCircle, contentDescription = "Add Teacher")
             }
         }
 
         if (showAddTeacherForm) {
             AddTeacherForm(onDismiss = { showAddTeacherForm = false })
-
         }
 
         LazyColumn(
             contentPadding = PaddingValues(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-
-
-
             val filteredRooms = rooms.filter { room ->
-                       room.name.contains(searchQuery, ignoreCase = true) ||
-                               room.coursesTaught.any { course -> course.contains(searchQuery, ignoreCase = true) } || room.address.contains(searchQuery, ignoreCase = true) ||
+                room.name.contains(searchQuery, ignoreCase = true) ||
+                        room.coursesTaught.any { course -> course.contains(searchQuery, ignoreCase = true) } ||
+                        room.address.contains(searchQuery, ignoreCase = true) ||
                         room.phone.contains(searchQuery, ignoreCase = true) ||
                         room.familyname.contains(searchQuery, ignoreCase = true) ||
                         room.email.contains(searchQuery, ignoreCase = true)
@@ -216,37 +214,59 @@ fun RoomLis(
 }
 
 @Composable
-
 fun RoomIte(
     room: Teacher,
     onDelete: () -> Unit,
     onUpdate: () -> Unit
-
 ) {
     var name by remember { mutableStateOf(room.name) }
     var email by remember { mutableStateOf(room.email) }
-    var role by remember { mutableStateOf(room.id) }
     var address by remember { mutableStateOf(room.address) }
     var phone by remember { mutableStateOf(room.phone) }
     var familyName by remember { mutableStateOf(room.familyname) }
     var image by remember { mutableStateOf(room.image) }
-    var courses by remember { mutableStateOf(room.coursesTaught.joinToString(" ")) }
+    var selectedCourses by remember { mutableStateOf(room.coursesTaught.toSet()) }
     var updatedImage by remember { mutableStateOf<String?>(null) }
     var imageUpdated by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
-    var editMode by remember { mutableStateOf(false) } // تتبع حالة وضع التحرير
+    var editMode by remember { mutableStateOf(false) }
+
     val getContent = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             updatedImage = uri.toString()
             imageUpdated = true
         }
     }
+
+    var courses by remember { mutableStateOf(listOf<Course>()) }
+    LaunchedEffect(Unit) {
+        val database = Firebase.database
+        val coursesRef = database.getReference("courses")
+
+        coursesRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val updatedCourses = snapshot.children.mapNotNull { courseSnapshot ->
+                    val id = courseSnapshot.key.orEmpty()
+                    val name = courseSnapshot.child("name").getValue(String::class.java).orEmpty()
+                    Course(id, name)
+                }
+                courses = updatedCourses
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("RoomItem", "Error loading courses", error.toException())
+            }
+        })
+    }
+
+    val courseNameMap = courses.associate { it.id to it.name }
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Confirm Delete") },
-            text = { Text("Are you sure you want to delete this room?") },
+            text = { Text("Are you sure you want to delete this teacher?") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -268,7 +288,6 @@ fun RoomIte(
     }
 
     if (showInfoDialog) {
-
         AlertDialog(
             onDismissRequest = { showInfoDialog = false },
             title = { Text("Teacher Details") },
@@ -281,88 +300,85 @@ fun RoomIte(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-
                     Box {
-                        Column(  horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            FirebaseImage(url = room.image)
 
-
-                        FirebaseImage(url = room.image)
-
-                        if (editMode){
-                            IconButton(
-                                onClick = {
-                                    getContent.launch("image/*")
+                            if (editMode) {
+                                IconButton(
+                                    onClick = {
+                                        getContent.launch("image/*")
+                                    }
+                                ) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Select Image")
                                 }
-                            ) {
-                                Icon(Icons.Default.Edit, contentDescription = "Delete Room")
                             }
-
-
-
                         }
-                    } }
+                    }
+                    // Display courses with checkboxes
+                    Text("select Courses:")
+                    Row( modifier = Modifier.horizontalScroll(ScrollState(0)) // استخدم ScrollState بدلاً من CoroutineScope
+                    ) {
+                        courses.forEach { course ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked = selectedCourses.contains(course.id),
+                                    onCheckedChange = {
+                                        if (it) {
+                                            selectedCourses = selectedCourses + course.id
+                                        } else {
+                                            selectedCourses = selectedCourses - course.id
+                                        }
+                                    }
+                                )
+                                Text(course.name)
+                            }
+                        }    }
 
                     OutlinedTextField(
                         value = familyName,
-                        onValueChange = { familyName = it  },
+                        onValueChange = { familyName = it },
                         label = { Text("Family Name") },
-                        readOnly = !editMode // قراءة فقط في وضع العرض
+                        readOnly = !editMode
                     )
 
-                    // تغيير حقول النص القراءة فقط إلى حقول النص القابلة للتحرير
                     OutlinedTextField(
                         value = name,
-                        onValueChange = { name=it/* تحديث القيمة عند التغيير */ },
+                        onValueChange = { name = it },
                         label = { Text("Name") },
-                        readOnly = !editMode // قراءة فقط في وضع العرض
+                        readOnly = !editMode
                     )
 
-                    // حقل النص لعرض قائمة الدورات
 
-                    OutlinedTextField(
-                        value = courses,
-                        onValueChange = {courses = it /* تحديث القيمة عند التغيير */ },
-                        label = { Text("Courses") },
-                        readOnly = !editMode // قراءة فقط في وضع العرض
-                    )
 
-                    // تغيير حقول النص القراءة فقط إلى حقول النص القابلة للتحرير
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email=it/* تحديث القيمة عند التغيير */ },
+                        onValueChange = { email = it },
                         label = { Text("Email") },
-                        readOnly = !editMode // قراءة فقط في وضع العرض
+                        readOnly = !editMode
                     )
 
-                    // تغيير حقول النص القراءة فقط إلى حقول النص القابلة للتحرير
                     OutlinedTextField(
                         value = phone,
-                        onValueChange = { phone=it/* تحديث القيمة عند التغيير */ },
+                        onValueChange = { phone = it },
                         label = { Text("Phone") },
-                        readOnly = !editMode // قراءة فقط في وضع العرض
+                        readOnly = !editMode
                     )
 
-                    // تغيير حقول النص القراءة فقط إلى حقول النص القابلة للتحرير
                     OutlinedTextField(
                         value = address,
-                        onValueChange = { address=it/* تحديث القيمة عند التغيير */ },
+                        onValueChange = { address = it },
                         label = { Text("Address") },
-                        readOnly = !editMode // قراءة فقط في وضع العرض
+                        readOnly = !editMode
                     )
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        // إغلاق مربع حوار المعلومات
                         showInfoDialog = false
-                        // إذا كان في وضع التحرير، احفظ التحديثات
                         if (editMode) {
-                            val updatedCourses = courses.split(" ").map { it.trim() }
-                            // احفظ التحديثات
                             if (imageUpdated) {
-                                // Update the image
                                 val storageRef = Firebase.storage.reference.child("images/ProfileUsers/${room.id}")
                                 val uploadTask = storageRef.putFile(Uri.parse(updatedImage))
 
@@ -373,9 +389,7 @@ fun RoomIte(
                                                 val downloadUri = downloadUrlTask.result
                                                 val imageUrl = downloadUri.toString()
 
-                                                // Update the image URL in Realtime Database
-                                                updateTeacherData(room.id, familyName, name, email, address, phone, imageUrl,updatedCourses)
-
+                                                updateTeacherData(room.id, familyName, name, email, address, phone, imageUrl, selectedCourses.toList())
                                             }
                                         }
                                     } else {
@@ -385,20 +399,18 @@ fun RoomIte(
                                     }
                                 }
                             } else {
-                                // Use the current image
-                                updateTeacherData(room.id, familyName, name, email, address, phone, image, updatedCourses)
-
+                                updateTeacherData(room.id, familyName, name, email, address, phone, image, selectedCourses.toList())
                             }
-                            // اخرج من وضع التحرير بعد حفظ التحديثات
                             editMode = false
                         }
                     }
                 ) {
-                    Text(if (editMode) "Save" else "Close") // تغيير نص الزر حسب وضع التحرير
+                    Text(if (editMode) "Save" else "Close")
                 }
             }
         )
     }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = { showInfoDialog = true }
@@ -414,7 +426,7 @@ fun RoomIte(
             }
             Column(
                 modifier = Modifier.weight(1f)
-            )    {
+            ) {
                 Text(
                     text = "${room.familyname} ${room.name}",
                     style = TextStyle(
@@ -427,26 +439,19 @@ fun RoomIte(
                 )
 
                 Spacer(modifier = Modifier.height(5.dp))
-                Row( verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 20.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 20.dp)
+                ) {
                     Text(
-                        text = "",
+                        text = selectedCourses.map { courseNameMap[it] ?: it }.joinToString(" "),
                         style = TextStyle(
                             fontFamily = FontFamily.Default,
                             fontSize = 18.sp,
                             color = Color.Gray
                         )
                     )
-
-                    Text(
-                        text = courses,
-                        style = TextStyle(
-                            fontFamily = FontFamily.Default,
-                            fontSize = 18.sp,
-                            color = Color.Gray
-                        )
-                    )
- }
+                }
                 Spacer(modifier = Modifier.height(5.dp))
                 Text(
                     text = room.email,
@@ -457,12 +462,13 @@ fun RoomIte(
                     ),
                     modifier = Modifier.padding(start = 10.dp)
                 )
-
             }
 
             IconButton(
-                onClick = { showInfoDialog = true
-                          editMode  = true}  ,
+                onClick = {
+                    showInfoDialog = true
+                    editMode = true
+                },
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(Icons.Default.Edit, contentDescription = "Edit Room")
@@ -477,10 +483,19 @@ fun RoomIte(
         }
     }
 }
-fun updateTeacherData(uid: String, familyName: String, name: String, email: String, address: String, phone: String, image: String, courses: List<String>) {
-  val userRef = database.reference.child("users").child("teachers").child(uid)
 
-    // تحديث البيانات
+fun updateTeacherData(
+    uid: String,
+    familyName: String,
+    name: String,
+    email: String,
+    address: String,
+    phone: String,
+    image: String,
+    courses: List<String>
+) {
+    val userRef = Firebase.database.reference.child("users").child("teachers").child(uid)
+
     val data: Map<String, Any> = hashMapOf(
         "name" to name,
         "familyname" to familyName,
@@ -488,13 +503,10 @@ fun updateTeacherData(uid: String, familyName: String, name: String, email: Stri
         "address" to address,
         "phone" to phone,
         "image" to image,
-        "courses" to courses // Split the courses string into a list
-
+        "courses" to courses
     )
 
-    // تحديث البيانات في Firebase Realtime Database
-    userRef
-        .updateChildren(data)
+    userRef.updateChildren(data)
         .addOnSuccessListener {
             // التحديث ناجح
         }
@@ -502,7 +514,6 @@ fun updateTeacherData(uid: String, familyName: String, name: String, email: Stri
             // حدث خطأ أثناء التحديث
         }
 }
-
 
 @Composable
 fun AddTeacherForm(onDismiss: () -> Unit) {
@@ -515,7 +526,7 @@ fun AddTeacherForm(onDismiss: () -> Unit) {
     var image by remember { mutableStateOf("") }
     var selectImage by remember { mutableStateOf<String?>(null) }
     var imageSelect by remember { mutableStateOf(false) }
-    var courses by remember { mutableStateOf(("")) }
+    var selectedCourses by remember { mutableStateOf(setOf<String>()) }
 
     val isEmailEmpty = email.isEmpty()
     val isPasswordEmpty = password.isEmpty()
@@ -523,93 +534,125 @@ fun AddTeacherForm(onDismiss: () -> Unit) {
         mutableStateOf(android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())
     }
 
-    val getContent =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let {
-                selectImage = uri.toString()
-                imageSelect = true
-            }
+    val getContent = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            selectImage = uri.toString()
+            imageSelect = true
         }
+    }
+
+    // Fetch courses from Firebase
+    var courses by remember { mutableStateOf(listOf<Course>()) }
+    LaunchedEffect(Unit) {
+        val database = Firebase.database
+        val coursesRef = database.getReference("courses")
+
+        coursesRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val updatedCourses = snapshot.children.mapNotNull { courseSnapshot ->
+                    val id = courseSnapshot.key.orEmpty()
+                    val name = courseSnapshot.child("name").getValue(String::class.java).orEmpty()
+                    Course(id, name)
+                }
+                courses = updatedCourses
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("AddTeacherForm", "Error loading courses", error.toException())
+            }
+        })
+    }
+
     AlertDialog(
-        onDismissRequest = {  onDismiss()  },
+        onDismissRequest = { onDismiss() },
         title = { Text("Add New Teacher") },
         text = {
-    Column(
-        modifier = Modifier
-            .padding(8.dp)
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Button(
-            onClick = {
-                getContent.launch("image/*")
-            },
-            modifier = Modifier.padding(8.dp)
-        ) {
-            Text(if (selectImage != null) "Selected Image" else "Select Image")
-        }
-
-        OutlinedTextField(
-            value = familyName,
-            onValueChange = { familyName = it },
-            label = { Text("Family Name") }
-        )
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Name") }
-        )
-        OutlinedTextField(
-            value = courses,
-            onValueChange = { courses = it },
-            label = { Text("Courses") }
-        )
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email *") },
-            isError = isEmailEmpty || !isEmailValid,
-            textStyle = if (isEmailEmpty || !isEmailValid) LocalTextStyle.current.copy(color = Color.Red) else LocalTextStyle.current
-        )
-        if (!isEmailValid && email.isNotEmpty()) {
-            Text(
-                text = "Invalid Email Format",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.Red,
-                modifier = Modifier.padding(start = 16.dp)
-            )
-        }
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password *") },
-            visualTransformation = PasswordVisualTransformation(),
-            isError = isPasswordEmpty,
-            textStyle = if (isPasswordEmpty) LocalTextStyle.current.copy(color = Color.Red) else LocalTextStyle.current
-        )
-        OutlinedTextField(
-            value = phone,
-            onValueChange = { phone = it },
-            label = { Text("Phone") }
-        )
-        OutlinedTextField(
-            value = address,
-            onValueChange = { address = it },
-            label = { Text("Address") }
-        )
+            Column(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Button(
+                    onClick = {
+                        getContent.launch("image/*")
+                    },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text(if (selectImage != null) "Selected Image" else "Select Image")
+                }
+// Display courses with checkboxes
+                Text("Courses:")
+                Row( modifier = Modifier.horizontalScroll(ScrollState(0)) // استخدم ScrollState بدلاً من CoroutineScope
+                ) {
 
 
+                    courses.forEach { course ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = selectedCourses.contains(course.id),
+                                onCheckedChange = {
+                                    if (it) {
+                                        selectedCourses = selectedCourses + course.id
+                                    } else {
+                                        selectedCourses = selectedCourses - course.id
+                                    }
+                                }
+                            )
+                            Text(course.name)
+                        }
+                    }    }
+                OutlinedTextField(
+                    value = familyName,
+                    onValueChange = { familyName = it },
+                    label = { Text("Family Name") }
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") }
+                )
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email *") },
+                    isError = isEmailEmpty || !isEmailValid,
+                    textStyle = if (isEmailEmpty || !isEmailValid) LocalTextStyle.current.copy(color = Color.Red) else LocalTextStyle.current
+                )
+                if (!isEmailValid && email.isNotEmpty()) {
+                    Text(
+                        text = "Invalid Email Format",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Red,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password *") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    isError = isPasswordEmpty,
+                    textStyle = if (isPasswordEmpty) LocalTextStyle.current.copy(color = Color.Red) else LocalTextStyle.current
+                )
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Phone") }
+                )
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    label = { Text("Address") }
+                )
 
-
-
-    }},
+            }
+        },
         confirmButton = {
             Button(
                 onClick = {
-                    val updatedCourses = courses.split(" ").map { it.trim() }
-
                     if (email.isEmpty() || password.isEmpty() || !isEmailValid) {
                         // Handle empty or invalid email or password
                         return@Button
@@ -622,7 +665,7 @@ fun AddTeacherForm(onDismiss: () -> Unit) {
                         "",
                         phone,
                         "teacher",
-                        updatedCourses
+                        selectedCourses.toList()
                     )
 
                     FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
@@ -632,8 +675,7 @@ fun AddTeacherForm(onDismiss: () -> Unit) {
                                 if (user != null) {
                                     val uid = user.uid
                                     if (imageSelect) {
-                                        val storageRef =
-                                            Firebase.storage.reference.child("images/ProfileUsers/${uid}")
+                                        val storageRef = Firebase.storage.reference.child("images/ProfileUsers/${uid}")
                                         val uploadTask = storageRef.putFile(Uri.parse(selectImage))
 
                                         uploadTask.addOnCompleteListener { uploadTask ->
@@ -644,8 +686,7 @@ fun AddTeacherForm(onDismiss: () -> Unit) {
                                                         val imageUrl = downloadUri.toString()
                                                         adminA.image = imageUrl
 
-                                                        FirebaseDatabase.getInstance()
-                                                            .reference.child("users").child("teachers")
+                                                        FirebaseDatabase.getInstance().reference.child("users").child("teachers")
                                                             .child(uid).setValue(adminA)
                                                     }
                                                 }
@@ -656,8 +697,6 @@ fun AddTeacherForm(onDismiss: () -> Unit) {
                                             }
                                         }
                                     } else {
-
-
                                         FirebaseDatabase.getInstance().reference.child("users")
                                             .child("teachers").child(uid).setValue(adminA)
                                     }
@@ -669,12 +708,12 @@ fun AddTeacherForm(onDismiss: () -> Unit) {
                                     phone = ""
                                     familyName = ""
                                     image = ""
+                                    selectedCourses = setOf()
                                 }
                             } else {
                                 // Handle registration failure
                             }
                         }
-
                 }
             ) {
                 Text("Add")
@@ -682,6 +721,7 @@ fun AddTeacherForm(onDismiss: () -> Unit) {
         }
     )
 }
+
 
 
 

@@ -65,9 +65,14 @@ import android.graphics.drawable.shapes.OvalShape;
 import android.net.LinkAddress
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.semantics.Role
 import androidx.room.Update
 import kotlinx.coroutines.tasks.await
@@ -187,27 +192,30 @@ fun StudentList(
     }
 
     Column(modifier = Modifier.padding(innerPadding)) {
-        DropdownMenuSelection(
-            label = "Select Level",
-            options = levels + mapOf("all" to "All"),
-            selectedOptionId = selectedLevelId
-        ) { levelId ->
-            selectedLevelId = if (levelId == "all") null else levelId
-        }
-
-        if (selectedLevelId != null && selectedLevelId != "all") {
+        Column(modifier = Modifier.padding(start = 60.dp, end = 50.dp,top = 20.dp)) {
             DropdownMenuSelection(
-                label = "Select Group",
-                options = groups,
-                selectedOptionId = selectedGroupId
-            ) { groupId ->
-                selectedGroupId = groupId
+                label = "Select Level",
+                options = levels + mapOf("all" to "All"),
+                selectedOptionId = selectedLevelId
+            ) { levelId ->
+                selectedLevelId = if (levelId == "all") null else levelId
+            }
+
+            if (selectedLevelId != null && selectedLevelId != "all") {
+                Spacer(modifier = Modifier.height(10.dp))
+                DropdownMenuSelection(
+                    label = "Select Group",
+                    options = groups,
+                    selectedOptionId = selectedGroupId
+                ) { groupId ->
+                    selectedGroupId = groupId
+                }
             }
         }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(bottom = 40.dp, start = 8.dp, top = 50.dp)
+            modifier = Modifier.padding(bottom = 40.dp, start = 8.dp, top = 20.dp)
         ) {
             IconButton(
                 onClick = { /* Perform search action */ }
@@ -720,7 +728,7 @@ fun AddStudentForm(onDismiss: () -> Unit) {
         }
     )
 }
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DropdownMenuSelection(
     label: String,
@@ -729,19 +737,33 @@ fun DropdownMenuSelection(
     onOptionSelected: (String?) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val selectedOptionText = options[selectedOptionId] ?: label
 
     Column {
-        Box {
-            OutlinedTextField(
-                value = options[selectedOptionId] ?: label,
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            TextField(
+                value = selectedOptionText,
                 onValueChange = {},
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = true },
+                    .menuAnchor(),
                 readOnly = true,
-                label = { Text(label) }
+                label = { Text(label) },
+                trailingIcon = {
+                    Icon(
+                        imageVector = if (expanded) Icons.Filled.ArrowDropDown else Icons.Filled.ArrowDropDown,
+                        contentDescription = null
+                    )
+                },
+                colors = TextFieldDefaults.textFieldColors(
+                   // backgroundColor = MaterialTheme.colorScheme.surface
+                ),
+                shape = MaterialTheme.shapes.medium
             )
-            DropdownMenu(
+            ExposedDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
@@ -758,6 +780,17 @@ fun DropdownMenuSelection(
         }
     }
 }
+
+@Composable
+fun MainScreen() {
+    var selectedLevelId by remember { mutableStateOf<String?>(null) }
+    var selectedGroupId by remember { mutableStateOf<String?>(null) }
+    val levels = mapOf("1" to "Level 1", "2" to "Level 2")
+    val groups = mapOf("A" to "Group A", "B" to "Group B")
+
+
+}
+
 
 fun saveStudentData(uid: String, student: studentsCreatUser, levelId: String?, groupId: String?) {
     val database = FirebaseDatabase.getInstance()
