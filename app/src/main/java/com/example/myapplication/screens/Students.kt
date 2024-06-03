@@ -88,6 +88,7 @@ data class Student(
     val role: String = "",
     val levelId: String = "",
     val groupId: String = "",
+    val parentId: String = "",
 )
 
 data class StudentCreateUser(
@@ -151,8 +152,8 @@ fun StudentList(
                     val image = studentSnapshot.child("image").getValue(String::class.java).orEmpty()
                     val levelId = studentSnapshot.child("levelId").getValue(String::class.java).orEmpty()
                     val groupId = studentSnapshot.child("groupId").getValue(String::class.java).orEmpty()
-
-                    Student(id, familyName, name, email, address, image, phone, "student", levelId, groupId)
+                     val parentId = studentSnapshot.child("parentId").getValue(String::class.java).orEmpty()
+                    Student(id, familyName, name, email, address, image, phone, "student", levelId, groupId,parentId)
                 }
                 students = updatedStudents
             }
@@ -275,12 +276,12 @@ fun StudentItem(
 ) {
     var name by remember { mutableStateOf(student.name) }
     var email by remember { mutableStateOf(student.email) }
-    var role by remember { mutableStateOf(student.id) }
     var address by remember { mutableStateOf(student.address) }
     var phone by remember { mutableStateOf(student.phone) }
     var familyName by remember { mutableStateOf(student.familyName) }
     var image by remember { mutableStateOf(student.image) }
-
+    var parentId by remember { mutableStateOf(student.parentId) }
+    var parentName by remember { mutableStateOf("") }
     var updatedImage by remember { mutableStateOf<String?>(null) }
     var imageUpdated by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -291,6 +292,10 @@ fun StudentItem(
             updatedImage = uri.toString()
             imageUpdated = true
         }
+    }
+
+    LaunchedEffect(parentId) {
+        parentName = fetchParentById(parentId)
     }
 
     if (showDeleteDialog) {
@@ -452,7 +457,7 @@ fun StudentItem(
                     modifier = Modifier.padding(start = 20.dp)
                 ) {
                     Text(
-                        text = "",
+                        text = parentName,
                         style = TextStyle(
                             fontFamily = FontFamily.Default,
                             fontSize = 18.sp,
@@ -488,10 +493,8 @@ fun StudentItem(
             }
         }
     }
-
-
-
 }
+
 
 
     fun updateStudentData(uid: String, familyName: String, name: String, email: String, address: String, phone: String, image: String) {
@@ -852,6 +855,21 @@ suspend fun fetchParents(): Map<String, String> {
         snapshot.children.associate { it.key.toString() to it.child("familyname").value.toString()+" "+it.child("name").value.toString() }
     } catch (e: Exception) {
         emptyMap()
+    }
+}
+suspend fun fetchParentById(id: String): String {
+    val database = FirebaseDatabase.getInstance()
+    val parentRef = database.getReference("users/parents").child(id)
+
+    return try {
+        val snapshot = parentRef.get().await()
+        if (snapshot.exists()) {
+            snapshot.child("familyname").value.toString() + " " + snapshot.child("name").value.toString()
+        } else {
+            ""
+        }
+    } catch (e: Exception) {
+        ""
     }
 }
 

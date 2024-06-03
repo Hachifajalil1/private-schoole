@@ -2,6 +2,7 @@ package com.example.myapplication
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,9 +34,28 @@ import com.google.firebase.database.ValueEventListener
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            // تمرير السياق إلى شاشة تسجيل الدخول
-            LoginScreen(this)
+
+        // التحقق من حالة تسجيل الدخول
+        val sharedPreferences = getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+        val isLoggedIn = sharedPreferences.getBoolean("isLoggedIn", false)
+        val userRole = sharedPreferences.getString("userRole", null)
+
+        if (isLoggedIn && userRole != null) {
+            // إذا كان المستخدم مسجلاً دخوله، توجيهه إلى الشاشة المناسبة بناءً على الدور
+            val intent = when (userRole) {
+                "admin" -> Intent(this, AdminMainActivity::class.java)
+                "parent" -> Intent(this, ParentMainActivity::class.java)
+                "teacher" -> Intent(this, TeacherMainActivity::class.java)
+                "student" -> Intent(this, StudentMainActivity::class.java)
+                else -> Intent(this, MainActivity::class.java)
+            }
+            startActivity(intent)
+            finish()
+        } else {
+            // إذا لم يكن مسجلاً دخوله، عرض شاشة تسجيل الدخول
+            setContent {
+                LoginScreen(this)
+            }
         }
     }
 }
@@ -56,19 +76,17 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(25.dp)
-            .verticalScroll(rememberScrollState()), // تمكين التمرير العمودي
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center
     ) {
-        // عرض الصورة كخلفية
         Image(
             painter = painterResource(id = R.drawable.screen),
             contentDescription = "Background Image",
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.4f) // يمكن تعديل هذا الرقم لتناسب ارتفاع الصورة
+                .fillMaxHeight(0.4f)
         )
 
-        // حقل النص للبريد الإلكتروني
         OutlinedTextField(
             value = email,
             onValueChange = {
@@ -81,7 +99,6 @@ fun LoginScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // حقل كلمة المرور
         OutlinedTextField(
             value = password,
             onValueChange = {
@@ -95,7 +112,6 @@ fun LoginScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // زر تسجيل الدخول
         Button(
             onClick = {
                 if (email.isBlank()) {
@@ -114,7 +130,6 @@ fun LoginScreen(
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        // زر إرسال رابط إعادة كلمة المرور
         TextButton(
             onClick = {
                 if (email.isNotBlank()) {
@@ -133,15 +148,12 @@ fun LoginScreen(
     }
 }
 
-// تسجيل الدخول باستخدام Firebase Auth
 fun loginUser(context: Context, email: String, password: String, onLoginSuccess: () -> Unit) {
     FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                // عرض رسالة نجاح تسجيل الدخول
                 Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
 
-                // فحص صلاحيات المستخدم وتوجيهه إلى الشاشة المناسبة
                 val user = FirebaseAuth.getInstance().currentUser
                 if (user != null) {
                     val uid = user.uid
@@ -149,107 +161,115 @@ fun loginUser(context: Context, email: String, password: String, onLoginSuccess:
                     val userRef = database.child("users").child("admins").child(uid)
                     userRef.addListenerForSingleValueEvent(object : ValueEventListener {
                         override fun onDataChange(dataSnapshot: DataSnapshot) {
+                            val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
                             if (dataSnapshot.exists()) {
-                                // المستخدم هو مسؤول
-                                val role = dataSnapshot.child("role").getValue(String::class.java)
-                                Toast.makeText(context, role, Toast.LENGTH_SHORT).show()
-                                // يمكن توجيه المسؤول إلى النشاط المناسب
-                                val intent = Intent(context, MainActivity::class.java)
-                                context.startActivity(intent)
+                                saveUserData(context, dataSnapshot, sharedPreferences)
+                                navigateToRoleBasedActivity(context, dataSnapshot.child("role").getValue(String::class.java))
                             } else {
-                                // المستخدم غير مسؤول، يتم التحقق من دوره
-                                val usersRef = database.child("users")
-                                val userId = user.uid
-
-                                // تحقق من دور المستخدم (والدي، معلم، طالب)
-                                usersRef.child("parents").child(userId)
-                                    .addListenerForSingleValueEvent(object : ValueEventListener {
-                                        override fun onDataChange(snapshot: DataSnapshot) {
-                                            if (snapshot.exists()) {
-                                                // المستخدم هو ولي أمر
-                                                val role = snapshot.child("role").getValue(String::class.java)
-                                                Toast.makeText(context, role, Toast.LENGTH_SHORT).show()
-                                                // يمكن توجيه الوالد إلى النشاط المناسب
-                                            } else {
-                                                // المستخدم ليس ولي أمر، يتم التحقق من دوره كمعلم
-                                                usersRef.child("teachers").child(userId)
-                                                    .addListenerForSingleValueEvent(object :
-                                                        ValueEventListener {
-                                                        override fun onDataChange(snapshot: DataSnapshot) {
-                                                            if (snapshot.exists()) {
-                                                                // المستخدم هو معلم
-                                                                val role =
-                                                                    snapshot.child("role").getValue(String::class.java)
-                                                                Toast.makeText(context, role, Toast.LENGTH_SHORT).show()
-                                                                // يمكن توجيه المعلم إلى النشاط المناسب
-                                                            } else {
-                                                                // المستخدم ليس ولي أمر ولا معلم، يتم التحقق من دوره كطالب
-                                                                usersRef.child("students")
-                                                                    .addListenerForSingleValueEvent(object :
-                                                                        ValueEventListener {
-                                                                        override fun onDataChange(snapshot: DataSnapshot) {
-                                                                            snapshot.children.forEach { level ->
-                                                                                level.children.forEach { group ->
-                                                                                    group.children.forEach { student ->
-                                                                                        if (student.key == userId) {
-                                                                                            // المستخدم هو طالب
-                                                                                            val role =
-                                                                                                student.child("role")
-                                                                                                    .getValue(
-                                                                                                        String::class.java
-                                                                                                    )
-                                                                                            Toast.makeText(context, role, Toast.LENGTH_SHORT).show()
-                                                                                            // يمكن توجيه الطالب إلى النشاط المناسب
-                                                                                        }
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-
-                                                                        override fun onCancelled(error: DatabaseError) {
-                                                                            println("فشل في استرداد البيانات: ${error.message}")
-                                                                        }
-                                                                    })
-                                                            }
-                                                        }
-
-                                                        override fun onCancelled(error: DatabaseError) {
-                                                            println("فشل في استرداد البيانات: ${error.message}")
-                                                        }
-                                                    })
-                                            }
-                                        }
-
-                                        override fun onCancelled(error: DatabaseError) {
-                                            println("فشل في استرداد البيانات: ${error.message}")
-                                        }
-                                    })
+                                checkOtherRoles(context, user.uid, sharedPreferences)
                             }
                         }
 
                         override fun onCancelled(databaseError: DatabaseError) {
-                            println("فشل في استرداد البيانات: ${databaseError.message}")
+                            println("Failed to retrieve data: ${databaseError.message}")
                         }
                     })
                 }
             } else {
-                // عرض رسالة خطأ في حالة فشل تسجيل الدخول
-                val errorMessage = task.exception?.message ?: "حدث خطأ غير معروف"
+                val errorMessage = task.exception?.message ?: "Unknown error occurred"
                 Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
             }
         }
 }
 
-// إرسال رابط إعادة كلمة المرور باستخدام Firebase Auth
+fun saveUserData(context: Context, dataSnapshot: DataSnapshot, sharedPreferences: SharedPreferences) {
+    with(sharedPreferences.edit()) {
+        putBoolean("isLoggedIn", true)
+        putString("userId", dataSnapshot.key)
+        putString("userRole", dataSnapshot.child("role").getValue(String::class.java))
+        putString("userName", dataSnapshot.child("name").getValue(String::class.java))
+        putString("userEmail", dataSnapshot.child("email").getValue(String::class.java))
+        putString("userFamilyName", dataSnapshot.child("familyname").getValue(String::class.java))
+        putString("userImageUrl", dataSnapshot.child("image").getValue(String::class.java))
+
+        // إذا كان المستخدم طالبًا، قم بحفظ المعلومات الإضافية
+        if (dataSnapshot.child("role").getValue(String::class.java) == "student") {
+            putString("parentId", dataSnapshot.child("parentId").getValue(String::class.java))
+            putString("groupId", dataSnapshot.child("groupId").getValue(String::class.java))
+            putString("levelId", dataSnapshot.child("levelId").getValue(String::class.java))
+        }
+
+        apply()
+    }
+}
+
+fun navigateToRoleBasedActivity(context: Context, role: String?) {
+    val intent = when (role) {
+        "admin" -> Intent(context, AdminMainActivity::class.java)
+        "parent" -> Intent(context, ParentMainActivity::class.java)
+        "teacher" -> Intent(context, TeacherMainActivity::class.java)
+        "student" -> Intent(context, StudentMainActivity::class.java)
+        else -> Intent(context, MainActivity::class.java)
+    }
+    context.startActivity(intent)
+}
+
+fun checkOtherRoles(context: Context, userId: String, sharedPreferences: SharedPreferences) {
+    val database = FirebaseDatabase.getInstance().reference
+    val usersRef = database.child("users")
+
+    usersRef.child("parents").child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
+        override fun onDataChange(snapshot: DataSnapshot) {
+            if (snapshot.exists()) {
+                saveUserData(context, snapshot, sharedPreferences)
+                val intent = Intent(context, ParentMainActivity::class.java)
+                context.startActivity(intent)
+            } else {
+                usersRef.child("teachers").child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        if (snapshot.exists()) {
+                            saveUserData(context, snapshot, sharedPreferences)
+                            val intent = Intent(context, TeacherMainActivity::class.java)
+                            context.startActivity(intent)
+                        } else {
+                            usersRef.child("students").child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
+                                override fun onDataChange(snapshot: DataSnapshot) {
+                                    if (snapshot.exists()) {
+                                        saveUserData(context, snapshot, sharedPreferences)
+                                        val intent = Intent(context, StudentMainActivity::class.java)
+                                        context.startActivity(intent)
+                                    } else {
+                                        // Handle case where role is not found
+                                        Toast.makeText(context, "Role not found", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+
+                                override fun onCancelled(error: DatabaseError) {
+                                    println("Failed to retrieve data: ${error.message}")
+                                }
+                            })
+                        }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        println("Failed to retrieve data: ${error.message}")
+                    }                })
+            }
+        }
+
+        override fun onCancelled(error: DatabaseError) {
+            println("Failed to retrieve data: ${error.message}")
+        }
+    })
+}
+
 fun sendPasswordResetEmail(context: Context, email: String) {
     FirebaseAuth.getInstance().sendPasswordResetEmail(email)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                // تم إرسال رابط إعادة كلمة المرور بنجاح
-                Toast.makeText(context, "تم إرسال رابط إعادة كلمة المرور إلى البريد الإلكتروني", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Password reset email sent", Toast.LENGTH_SHORT).show()
             } else {
-                // عرض رسالة خطأ في حالة فشل إرسال رابط إعادة كلمة المرور
-                val errorMessage = task.exception?.message ?: "حدث خطأ غير معروف"
+                val errorMessage = task.exception?.message ?: "Unknown error occurred"
                 Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
             }
         }

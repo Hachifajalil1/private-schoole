@@ -20,4 +20,7 @@ sealed class Screens(var route: String) {
     object Parents : Screens("Parents")
     object Timetable : Screens("Timetable")
     object Courses : Screens("Courses")
+    object TimetableStudents : Screens("TimetableStudents")
+    object TimetableTeachers : Screens("TimetableTeachers")
+
 }

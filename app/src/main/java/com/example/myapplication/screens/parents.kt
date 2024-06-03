@@ -65,8 +65,12 @@ import com.google.firebase.database.getValue // استيراد مكتبة getVal
 import com.google.firebase.storage.storage // استيراد مكتبة storage من com.google.firebase.storage
 import android.graphics.drawable.shapes.OvalShape;
 import android.net.LinkAddress
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.room.Update
 
@@ -91,7 +95,7 @@ data class ParentsCreatUser(
     val role: String="",
 
 )
-
+val database = Firebase.database
 
 @Composable
 fun ParentsScreen(innerPadding: PaddingValues) {
@@ -674,3 +678,14 @@ fun deleteParentsDatabase(context: Context, room: Parents) {
     roomsRef.removeValue()
     Toast.makeText(context, "Teacher deleted", Toast.LENGTH_SHORT).show()
 }
+@Composable
+fun FirebaseImage(url: String) {
+    val painter = rememberImagePainter(url)
+    Image(
+        painter = painter,
+        contentDescription = "Profile Picture",
+        modifier = Modifier
+            .size(80.dp)
+            .clip(shape = CircleShape), // تحويل الصورة إلى دائرة
+        contentScale = ContentScale.Crop,
+    )}

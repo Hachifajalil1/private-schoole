@@ -20,7 +20,7 @@ fun SetUpNavGraph(
     innerPadding: PaddingValues
 ) {
     NavHost(navController = navController,
-        startDestination = Screens.Timetable.route){
+        startDestination = Screens.Home.route){
         composable(Screens.Home.route){
             HomeScreen(innerPadding = innerPadding)
         }
@@ -57,6 +57,12 @@ fun SetUpNavGraph(
         }
         composable(Screens.Courses.route){
             CoursesScreen(innerPadding = innerPadding)
+        }
+        composable(Screens.TimetableStudents.route){
+            TimetableStudents(innerPadding = innerPadding)
+        }
+        composable(Screens.TimetableTeachers.route){
+            TimetableTeachers(innerPadding = innerPadding)
         }
 
     }

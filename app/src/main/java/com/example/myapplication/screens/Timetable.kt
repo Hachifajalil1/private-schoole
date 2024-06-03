@@ -120,8 +120,11 @@ data class TimetableEntry(
     val selectedDay: String = "",
     var classroomName: String = "",
     var teacherName: String = "",
-    var courseName: String = ""
+    var courseName: String = "",
+    var levelName: String = "", // New field
+    var groupName: String = ""  // New field
 )
+
 
 
 
@@ -592,8 +595,9 @@ suspend fun fetchTeachers(): Map<String, String> {
     for (teacherSnapshot in teachersSnapshot.children) {
         val teacherId = teacherSnapshot.key
         val teacherName = teacherSnapshot.child("name").getValue(String::class.java)
+        val teacherfamilyName = teacherSnapshot.child("familyname").getValue(String::class.java)
         if (teacherId != null && teacherName != null) {
-            teachersMap[teacherId] = teacherName
+            teachersMap[teacherId] = teacherfamilyName+" "+teacherName
         }
     }
     return teachersMap
@@ -607,9 +611,10 @@ suspend fun fetchTeachersForCourse(courseId: String, onTeachersFetched: (Map<Str
     for (teacherSnapshot in teachersSnapshot.children) {
         val teacherId = teacherSnapshot.key
         val teacherName = teacherSnapshot.child("name").getValue(String::class.java)
+        val teacherfamilyName = teacherSnapshot.child("familyname").getValue(String::class.java)
         val courses = teacherSnapshot.child("courses").children.map { it.getValue(String::class.java) }
         if (teacherId != null && teacherName != null && courses.contains(courseId)) {
-            teachersMap[teacherId] = teacherName
+            teachersMap[teacherId] = teacherfamilyName+" "+teacherName
         }
     }
     onTeachersFetched(teachersMap)
@@ -766,6 +771,154 @@ suspend fun deleteTimetableEntry(entryId: String) {
     val timetableRef = database.getReference("timetable").child(entryId)
     timetableRef.removeValue().await()
 }
+@Composable
+fun DisplayGroupTimetable(groupId: String) {
+    var timetable by remember { mutableStateOf(mapOf<String, TimetableEntry>()) }
+    var classrooms by remember { mutableStateOf(mapOf<String, String>()) }
+    var teachers by remember { mutableStateOf(mapOf<String, String>()) }
+    var courses by remember { mutableStateOf(mapOf<String, String>()) }
+
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(groupId) {
+        scope.launch {
+            classrooms = fetchClassrooms()
+            teachers = fetchTeachers()
+            courses = fetchCourses()
+            timetable = fetchTimetable(classrooms, teachers, courses, groupId)
+        }
+    }
+
+    Column(modifier = Modifier.padding(8.dp)) {
+        if (timetable.isNotEmpty()) {
+            GroupTimetable(groupId, timetable)
+        } else {
+            Text(text = "No timetable available for this group.", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+@Composable
+fun DisplayTeacherTimetable(teacherId: String) {
+    var timetable by remember { mutableStateOf(mapOf<String, TimetableEntry>()) }
+    var classrooms by remember { mutableStateOf(mapOf<String, String>()) }
+    var courses by remember { mutableStateOf(mapOf<String, String>()) }
+    var levels by remember { mutableStateOf(mapOf<String, String>()) }
+    var groups by remember { mutableStateOf(mapOf<String, String>()) }
+
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(teacherId) {
+        scope.launch {
+            classrooms = fetchClassrooms()
+            courses = fetchCourses()
+            levels = fetchLevels()
+            groups = fetchAllGroups()
+            timetable = fetchTeacherTimetable(classrooms, courses, levels, groups, teacherId)
+        }
+    }
+
+    Column(modifier = Modifier.padding(8.dp)) {
+        if (timetable.isNotEmpty()) {
+            TeacherTimetable(timetable)
+        } else {
+            Text(text = "No timetable available for this teacher.", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+fun TeacherTimetable(timetable: Map<String, TimetableEntry>) {
+    val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+    val scrollStateHorizontal = rememberScrollState()
+    val scrollStateVertical = rememberScrollState()
+
+    Column(modifier = Modifier.padding(8.dp).verticalScroll(scrollStateVertical)) {
+        // Header Row
+        Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(scrollStateHorizontal)) {
+            Text(text = "Time", style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(100.dp))
+            daysOfWeek.forEach { day ->
+                Text(text = day, style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(200.dp))
+            }
+        }
+
+        // Divider after header row
+        Divider()
+
+        // Find all unique time slots
+        val timeSlots = timetable.values.map { it.startTime to it.endTime }.distinct().sortedBy { it.first }
+
+        // For each time slot, create a row with classes scheduled in that time slot
+        timeSlots.forEach { (startTime, endTime) ->
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).horizontalScroll(scrollStateHorizontal)) {
+                Text(text = "$startTime - $endTime", modifier = Modifier.width(100.dp))
+
+                daysOfWeek.forEach { day ->
+                    val dayTimetable = timetable.filter { it.value.selectedDay == day && it.value.startTime == startTime && it.value.endTime == endTime }
+                    Column(modifier = Modifier.width(200.dp).padding(4.dp)) {
+                        if (dayTimetable.isNotEmpty()) {
+                            dayTimetable.forEach { (_, entry) ->
+                                Column {
+                                    Text(text = " ${entry.courseName}")
+                                    Text(text = " ${entry.classroomName}")
+                                    Text(text = " ${entry.levelName}")
+                                    Text(text = " ${entry.groupName}")
+                                }
+                            }
+                        } else {
+                            Text(text = "/")
+                        }
+                    }
+                }
+            }
+            // Divider between rows
+            Divider()
+        }
+    }
+}
+
+suspend fun fetchTeacherTimetable(classrooms: Map<String, String>, courses: Map<String, String>, levels: Map<String, String>, groups: Map<String, String>, teacherId: String): Map<String, TimetableEntry> {
+    val database = FirebaseDatabase.getInstance()
+    val timetableRef = database.getReference("timetable")
+
+    val timetableSnapshot = timetableRef.get().await()
+    val timetableMap = mutableMapOf<String, TimetableEntry>()
+    for (timetableEntrySnapshot in timetableSnapshot.children) {
+        val timetableEntry = timetableEntrySnapshot.getValue(TimetableEntry::class.java)
+        if (timetableEntry != null && timetableEntry.teacherId == teacherId) {
+            timetableEntry.classroomName = classrooms[timetableEntry.classroomId] ?: ""
+            timetableEntry.courseName = courses[timetableEntry.courseId] ?: ""
+            timetableEntry.levelName = levels[timetableEntry.levelId] ?: ""
+            timetableEntry.groupName = groups[timetableEntry.groupId] ?: ""
+            timetableEntrySnapshot.key?.let { timetableMap[it] = timetableEntry }
+        }
+    }
+    return timetableMap
+}
+
+suspend fun fetchAllGroups(): Map<String, String> {
+    val database = FirebaseDatabase.getInstance()
+    val groupsRef = database.getReference("levels")
+
+    val groupsSnapshot = groupsRef.get().await()
+    val groupsMap = mutableMapOf<String, String>()
+    for (levelSnapshot in groupsSnapshot.children) {
+        val levelId = levelSnapshot.key
+        val groups = levelSnapshot.child("groups").children
+        for (groupSnapshot in groups) {
+            val groupId = groupSnapshot.key
+            val groupName = groupSnapshot.child("name").getValue(String::class.java)
+            if (groupId != null && groupName != null) {
+                groupsMap[groupId] = groupName
+            }
+        }
+    }
+    return groupsMap
+}
+
+
+
+
 
 
 
