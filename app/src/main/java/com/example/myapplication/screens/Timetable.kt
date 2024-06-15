@@ -2,37 +2,27 @@ package com.example.myapplication
 
 import android.app.TimePickerDialog
 import android.content.Context
-import android.net.Uri // استيراد مكتبة Uri من Android
 import android.util.Log // استيراد مكتبة Log من Android
 import android.widget.Toast // استيراد مكتبة Toast من Android
-import androidx.activity.compose.rememberLauncherForActivityResult // استيراد مكتبة rememberLauncherForActivityResult من Android
-import androidx.activity.result.contract.ActivityResultContracts // استيراد مكتبة ActivityResultContracts من Android
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement // استيراد مكتبة Arrangement من compose.foundation.layout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column // استيراد مكتبة Column من compose.foundation.layout
 import androidx.compose.foundation.layout.PaddingValues // استيراد مكتبة PaddingValues من compose.foundation.layout
 import androidx.compose.foundation.layout.Row // استيراد مكتبة Row من compose.foundation.layout
-import androidx.compose.foundation.layout.Spacer // استيراد مكتبة Spacer من compose.foundation.layout
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height // استيراد مكتبة height من compose.foundation.layout
 import androidx.compose.foundation.layout.padding // استيراد مكتبة padding من compose.foundation.layout
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn // استيراد مكتبة LazyColumn من compose.foundation.lazy
 import androidx.compose.foundation.lazy.items // استيراد مكتبة items من compose.foundation.lazy
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons // استيراد مكتبة Icons من compose.material.icons
 import androidx.compose.material.icons.filled.Delete // استيراد مكتبة Delete من compose.material.icons.filled
-import androidx.compose.material.icons.filled.Edit // استيراد مكتبة Edit من compose.material.icons.filled
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button // استيراد مكتبة Button من compose.material3
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon // استيراد مكتبة Icon من compose.material3
 import androidx.compose.material3.IconButton // استيراد مكتبة IconButton من compose.material3
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text // استيراد مكتبة Text من compose.material3
 import androidx.compose.runtime.Composable // استيراد مكتبة Composable من compose.runtime
 import androidx.compose.runtime.LaunchedEffect // استيراد مكتبة LaunchedEffect من compose.runtime
@@ -42,43 +32,29 @@ import androidx.compose.runtime.remember // استيراد مكتبة remember �
 import androidx.compose.runtime.setValue // استيراد مكتبة setValue من compose.runtime
 import androidx.compose.ui.Alignment // استيراد مكتبة Alignment من compose.ui
 import androidx.compose.ui.Modifier // استيراد مكتبة Modifier من compose.ui
-import androidx.compose.ui.graphics.Color // استيراد مكتبة Color من compose.ui
 import androidx.compose.ui.platform.LocalContext // استيراد مكتبة LocalContext من compose.ui.platform
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight // استيراد مكتبة FontWeight من compose.ui.text
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp // استيراد مكتبة dp من compose.ui.unit
-import androidx.compose.ui.unit.sp // استيراد مكتبة sp من compose.ui.unit
-import coil.compose.rememberImagePainter
-import com.google.firebase.Firebase // استيراد مكتبة Firebase من com.google.firebase
-import com.google.firebase.FirebaseApp // استيراد مكتبة FirebaseApp من com.google.firebase
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DataSnapshot // استيراد مكتبة DataSnapshot من com.google.firebase.database
-import com.google.firebase.database.DatabaseError // استيراد مكتبة DatabaseError من com.google.firebase.database
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener // استيراد مكتبة ValueEventListener من com.google.firebase.database
-import com.google.firebase.database.database // استيراد مكتبة database من com.google.firebase.database
-import com.google.firebase.database.getValue // استيراد مكتبة getValue من com.google.firebase.database
-import com.google.firebase.storage.storage // استيراد مكتبة storage من com.google.firebase.storage
-import android.graphics.drawable.shapes.OvalShape;
-import android.net.LinkAddress
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -87,11 +63,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.room.Update
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
-suspend fun fetchTimetable(classrooms: Map<String, String>, teachers: Map<String, String>, courses: Map<String, String>, groupId: String): Map<String, TimetableEntry> {
+suspend fun fetchTimetable(
+    classrooms: Map<String, String>,
+    teachers: Map<String, String>,
+    courses: Map<String, String>,
+    groupId: String
+): Map<String, TimetableEntry> {
     val database = FirebaseDatabase.getInstance()
     val timetableRef = database.getReference("timetable")
 
@@ -110,6 +95,7 @@ suspend fun fetchTimetable(classrooms: Map<String, String>, teachers: Map<String
 }
 
 data class TimetableEntry(
+    var sessionId: String = "",
     val levelId: String? = null,
     val groupId: String? = null,
     val classroomId: String? = null,
@@ -118,15 +104,13 @@ data class TimetableEntry(
     val startTime: String = "",
     val endTime: String = "",
     val selectedDay: String = "",
+    val date: String = "",
     var classroomName: String = "",
     var teacherName: String = "",
     var courseName: String = "",
     var levelName: String = "", // New field
     var groupName: String = ""  // New field
 )
-
-
-
 
 @Composable
 fun TimetableScreen(innerPadding: PaddingValues) {
@@ -204,7 +188,6 @@ fun LevelGroupTimetable() {
             timetable = emptyMap()
         }
     }
-
 
     Column(modifier = Modifier.padding(8.dp)) {
         DropdownMenuSelection(
@@ -289,7 +272,6 @@ fun GroupTimetable(groupId: String, timetable: Map<String, TimetableEntry>) {
         }
     }
 }
-
 
 @Composable
 fun LevelGroupSelectionDialog(
@@ -485,7 +467,6 @@ fun LevelGroupSelectionDialog(
     )
 }
 
-
 @Composable
 fun DropdownMenuSelection(
     label: String,
@@ -520,7 +501,7 @@ fun DropdownMenuSelection(
                     selectedOptionText = value
                     onOptionSelected(key)
                     expanded = false
-                }, text =  {
+                }, text = {
                     Text(text = value)
                 })
             }
@@ -563,7 +544,7 @@ fun DropdownMenuTimeSelection(
                     selectedOptionText = "$start - $end"
                     onOptionSelected(start, end)
                     expanded = false
-                }, text =  {
+                }, text = {
                     Text(text = "$start - $end")
                 })
             }
@@ -595,9 +576,9 @@ suspend fun fetchTeachers(): Map<String, String> {
     for (teacherSnapshot in teachersSnapshot.children) {
         val teacherId = teacherSnapshot.key
         val teacherName = teacherSnapshot.child("name").getValue(String::class.java)
-        val teacherfamilyName = teacherSnapshot.child("familyname").getValue(String::class.java)
-        if (teacherId != null && teacherName != null) {
-            teachersMap[teacherId] = teacherfamilyName+" "+teacherName
+        val teacherFamilyName = teacherSnapshot.child("familyname").getValue(String::class.java)
+        if (teacherId != null && teacherName != null && teacherFamilyName != null) {
+            teachersMap[teacherId] = "$teacherFamilyName $teacherName"
         }
     }
     return teachersMap
@@ -611,10 +592,10 @@ suspend fun fetchTeachersForCourse(courseId: String, onTeachersFetched: (Map<Str
     for (teacherSnapshot in teachersSnapshot.children) {
         val teacherId = teacherSnapshot.key
         val teacherName = teacherSnapshot.child("name").getValue(String::class.java)
-        val teacherfamilyName = teacherSnapshot.child("familyname").getValue(String::class.java)
-        val courses = teacherSnapshot.child("courses").children.map { it.getValue(String::class.java) }
-        if (teacherId != null && teacherName != null && courses.contains(courseId)) {
-            teachersMap[teacherId] = teacherfamilyName+" "+teacherName
+        val teacherFamilyName = teacherSnapshot.child("familyname").getValue(String::class.java)
+        val courses = teacherSnapshot.child("courses").children.mapNotNull { it.getValue(String::class.java) }
+        if (teacherId != null && teacherName != null && teacherFamilyName != null && courses.contains(courseId)) {
+            teachersMap[teacherId] = "$teacherFamilyName $teacherName"
         }
     }
     onTeachersFetched(teachersMap)
@@ -623,6 +604,7 @@ suspend fun fetchTeachersForCourse(courseId: String, onTeachersFetched: (Map<Str
 suspend fun fetchCourses(): Map<String, String> {
     val database = FirebaseDatabase.getInstance()
     val coursesRef = database.getReference("courses")
+
 
     val coursesSnapshot = coursesRef.get().await()
     val coursesMap = mutableMapOf<String, String>()
@@ -771,6 +753,37 @@ suspend fun deleteTimetableEntry(entryId: String) {
     val timetableRef = database.getReference("timetable").child(entryId)
     timetableRef.removeValue().await()
 }
+
+
+@Composable
+fun CurrentSessionPage(teacherId: String) {
+    var timetable by remember { mutableStateOf(mapOf<String, TimetableEntry>()) }
+    var classrooms by remember { mutableStateOf(mapOf<String, String>()) }
+    var courses by remember { mutableStateOf(mapOf<String, String>()) }
+    var levels by remember { mutableStateOf(mapOf<String, String>()) }
+    var groups by remember { mutableStateOf(mapOf<String, String>()) }
+
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(teacherId) {
+        scope.launch {
+            classrooms = fetchClassrooms()
+            courses = fetchCourses()
+            levels = fetchLevels()
+            groups = fetchAllGroups()
+            timetable = fetchTeacherTimetable(classrooms, courses, levels, groups, teacherId)
+        }
+    }
+
+    Column(modifier = Modifier.padding(8.dp)) {
+        if (timetable.isNotEmpty()) {
+            CurrentSessionScreen(timetable)
+        } else {
+            Text(text = "No timetable available for this teacher.", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
 @Composable
 fun DisplayGroupTimetable(groupId: String) {
     var timetable by remember { mutableStateOf(mapOf<String, TimetableEntry>()) }
@@ -819,11 +832,173 @@ fun DisplayTeacherTimetable(teacherId: String) {
 
     Column(modifier = Modifier.padding(8.dp)) {
         if (timetable.isNotEmpty()) {
-            TeacherTimetable(timetable)
+            TeacherScreen(timetable)
         } else {
             Text(text = "No timetable available for this teacher.", style = MaterialTheme.typography.bodyMedium)
         }
     }
+}
+@Composable
+fun TeacherScreen(timetable: Map<String, TimetableEntry>) {
+    Column {
+        Text("Full Timetable", style = MaterialTheme.typography.labelMedium)
+        TimetableScreen(timetable)
+
+    }
+}
+
+
+suspend fun fetchStudentsForGroup(groupId: String): Map<String, String> {
+    val database = FirebaseDatabase.getInstance()
+    val studentsRef = database.getReference("users/students")
+
+    val studentsSnapshot = studentsRef.get().await()
+    val studentsMap = mutableMapOf<String, String>()
+    for (studentSnapshot in studentsSnapshot.children) {
+        val studentId = studentSnapshot.key
+        val studentGroupId = studentSnapshot.child("groupId").getValue(String::class.java)
+        val studentName = studentSnapshot.child("name").getValue(String::class.java)
+        val studentFamilyName = studentSnapshot.child("familyname").getValue(String::class.java)
+        if (studentId != null && studentGroupId == groupId && studentName != null) {
+            studentsMap[studentId] = studentFamilyName+" "+studentName
+        }
+    }
+    return studentsMap
+}
+
+
+
+
+
+
+suspend fun fetchTeacherTimetable(classrooms: Map<String, String>, courses: Map<String, String>, levels: Map<String, String>, groups: Map<String, String>, teacherId: String): Map<String, TimetableEntry> {
+    val database = FirebaseDatabase.getInstance()
+    val timetableRef = database.getReference("timetable")
+
+    val timetableSnapshot = timetableRef.get().await()
+    val timetableMap = mutableMapOf<String, TimetableEntry>()
+    for (timetableEntrySnapshot in timetableSnapshot.children) {
+        val timetableEntry = timetableEntrySnapshot.getValue(TimetableEntry::class.java)
+        if (timetableEntry != null && timetableEntry.teacherId == teacherId) {
+            timetableEntry.classroomName = classrooms[timetableEntry.classroomId] ?: ""
+            timetableEntry.courseName = courses[timetableEntry.courseId] ?: ""
+            timetableEntry.levelName = levels[timetableEntry.levelId] ?: ""
+            timetableEntry.groupName = groups[timetableEntry.groupId] ?: ""
+            timetableEntrySnapshot.key?.let { timetableEntry.sessionId = it } // Ensure session ID is set
+            timetableEntrySnapshot.key?.let { timetableMap[it] = timetableEntry }
+            Log.d("fetchTeacherTimetable", "Timetable Entry Added: $timetableEntry")
+        }
+    }
+    Log.d("fetchTeacherTimetable", "Total Entries Fetched: ${timetableMap.size}")
+    return timetableMap
+}
+
+
+
+suspend fun fetchAllGroups(): Map<String, String> {
+    val database = FirebaseDatabase.getInstance()
+    val groupsRef = database.getReference("levels")
+
+    val groupsSnapshot = groupsRef.get().await()
+    val groupsMap = mutableMapOf<String, String>()
+    for (levelSnapshot in groupsSnapshot.children) {
+        val levelId = levelSnapshot.key
+        val groups = levelSnapshot.child("groups").children
+        for (groupSnapshot in groups) {
+            val groupId = groupSnapshot.key
+            val groupName = groupSnapshot.child("name").getValue(String::class.java)
+            if (groupId != null && groupName != null) {
+                groupsMap[groupId] = groupName
+            }
+        }
+    }
+    return groupsMap
+}
+
+
+/********************************************************************************************/
+suspend fun saveAttendance(
+    timetableId: String,
+    attendanceData: Map<String, String>,
+    date: String
+) {
+    val database = FirebaseDatabase.getInstance()
+    val attendanceRef = database.getReference("attendance").child(timetableId).child(date)
+
+    val attendanceEntries = attendanceData.mapValues { (_, status) ->
+        mapOf(
+            "status" to status,
+
+        )
+    }
+
+    attendanceRef.setValue(attendanceEntries).await()
+}
+
+
+@Composable
+fun StudentDialog(timetableId: String, todayDate: String, students: Map<String, String>, onDismiss: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var selectedStatus by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = { onDismiss() },
+        title = { Text("List of Students") },
+        text = {
+            LazyColumn {
+                items(students.toList()) { (studentId, studentName) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth().padding(8.dp)
+                    ) {
+                        Text(text = studentName, modifier = Modifier.weight(1f))
+                        DropdownMenu(
+                            expanded = selectedStatus != null,
+                            onDismissRequest = { selectedStatus = null },
+                            content = {
+                                DropdownMenuItem(onClick = {
+                                    selectedStatus = "Present"
+                                    scope.launch {
+
+                                    }
+                                    selectedStatus = null
+                                }, text =  {
+                                    Text("Present")
+                                })
+                                DropdownMenuItem(onClick = {
+                                    selectedStatus = "Absent"
+                                    scope.launch {
+
+                                    }
+                                    selectedStatus = null
+                                }, text =  {
+                                    Text("Absent")
+                                })
+                                DropdownMenuItem(onClick = {
+                                    selectedStatus = "Late"
+                                    scope.launch {
+
+                                    }
+                                    selectedStatus = null
+                                }, text = {
+                                    Text("Late")
+                                })
+                            }
+                        )
+                        IconButton(onClick = { selectedStatus = studentId }) {
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Status")
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onDismiss() }) {
+                Text("Close")
+            }
+        }
+    )
 }
 
 @Composable
@@ -832,6 +1007,14 @@ fun TeacherTimetable(timetable: Map<String, TimetableEntry>) {
 
     val scrollStateHorizontal = rememberScrollState()
     val scrollStateVertical = rememberScrollState()
+    var showStudentDialog by remember { mutableStateOf(false) }
+    var selectedGroupId by remember { mutableStateOf<String?>(null) }
+    var selectedTimetableId by remember { mutableStateOf<String?>(null) }
+    var students by remember { mutableStateOf(mapOf<String, String>()) }
+    val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     Column(modifier = Modifier.padding(8.dp).verticalScroll(scrollStateVertical)) {
         // Header Row
@@ -857,8 +1040,12 @@ fun TeacherTimetable(timetable: Map<String, TimetableEntry>) {
                     val dayTimetable = timetable.filter { it.value.selectedDay == day && it.value.startTime == startTime && it.value.endTime == endTime }
                     Column(modifier = Modifier.width(200.dp).padding(4.dp)) {
                         if (dayTimetable.isNotEmpty()) {
-                            dayTimetable.forEach { (_, entry) ->
-                                Column {
+                            dayTimetable.forEach { (timetableId, entry) ->
+                                Column(modifier = Modifier.clickable {
+                                    selectedGroupId = entry.groupId
+                                    selectedTimetableId = timetableId
+                                    showStudentDialog = true
+                                }) {
                                     Text(text = " ${entry.courseName}")
                                     Text(text = " ${entry.classroomName}")
                                     Text(text = " ${entry.levelName}")
@@ -875,52 +1062,365 @@ fun TeacherTimetable(timetable: Map<String, TimetableEntry>) {
             Divider()
         }
     }
+
+    if (showStudentDialog && selectedGroupId != null && selectedTimetableId != null) {
+        LaunchedEffect(selectedGroupId) {
+            students = fetchStudentsForGroup(selectedGroupId!!)
+        }
+
+        StudentDialog(
+            timetableId = selectedTimetableId!!,
+            todayDate = todayDate,
+            students = students,
+            onDismiss = { showStudentDialog = false }
+        )
+    }
 }
+/**********************************************************************************************************/
 
-suspend fun fetchTeacherTimetable(classrooms: Map<String, String>, courses: Map<String, String>, levels: Map<String, String>, groups: Map<String, String>, teacherId: String): Map<String, TimetableEntry> {
-    val database = FirebaseDatabase.getInstance()
-    val timetableRef = database.getReference("timetable")
 
-    val timetableSnapshot = timetableRef.get().await()
-    val timetableMap = mutableMapOf<String, TimetableEntry>()
-    for (timetableEntrySnapshot in timetableSnapshot.children) {
-        val timetableEntry = timetableEntrySnapshot.getValue(TimetableEntry::class.java)
-        if (timetableEntry != null && timetableEntry.teacherId == teacherId) {
-            timetableEntry.classroomName = classrooms[timetableEntry.classroomId] ?: ""
-            timetableEntry.courseName = courses[timetableEntry.courseId] ?: ""
-            timetableEntry.levelName = levels[timetableEntry.levelId] ?: ""
-            timetableEntry.groupName = groups[timetableEntry.groupId] ?: ""
-            timetableEntrySnapshot.key?.let { timetableMap[it] = timetableEntry }
+
+
+
+
+
+
+@Composable
+fun TimetableScreen(timetable: Map<String, TimetableEntry>) {
+    val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+    val scrollStateHorizontal = rememberScrollState()
+    val scrollStateVertical = rememberScrollState()
+    var showStudentDialog by remember { mutableStateOf(false) }
+    var selectedGroupId by remember { mutableStateOf<String?>(null) }
+    var selectedTimetableId by remember { mutableStateOf<String?>(null) }
+    var students by remember { mutableStateOf(mapOf<String, String>()) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    Column(modifier = Modifier.padding(8.dp).verticalScroll(scrollStateVertical)) {
+        // Header Row
+        Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(scrollStateHorizontal)) {
+            Text(text = "Time", style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(100.dp))
+            daysOfWeek.forEach { day ->
+                Text(text = day, style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(200.dp))
+            }
+        }
+
+        // Divider after header row
+        Divider()
+
+        // Find all unique time slots
+        val timeSlots = timetable.values.map { it.startTime to it.endTime }.distinct().sortedBy { it.first }
+
+        // For each time slot, create a row with classes scheduled in that time slot
+        timeSlots.forEach { (startTime, endTime) ->
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).horizontalScroll(scrollStateHorizontal)) {
+                Text(text = "$startTime - $endTime", modifier = Modifier.width(100.dp))
+
+                daysOfWeek.forEach { day ->
+                    val dayTimetable = timetable.filter { it.value.selectedDay == day && it.value.startTime == startTime && it.value.endTime == endTime }
+                    Column(modifier = Modifier.width(200.dp).padding(4.dp)) {
+                        if (dayTimetable.isNotEmpty()) {
+                            dayTimetable.forEach { (timetableId, entry) ->
+                                Column(modifier = Modifier.clickable {
+                                    selectedGroupId = entry.groupId
+                                    selectedTimetableId = timetableId
+                                    showStudentDialog = true
+                                }) {
+                                    Text(text = " ${entry.levelName}")
+                                    Text(text = " ${entry.groupName}")
+                                    Text(text = " ${entry.courseName}")
+                                    Text(text = " ${entry.classroomName}")
+
+                                }
+                            }
+                        } else {
+                            Text(text = "/")
+                        }
+                    }
+                }
+            }
+            // Divider between rows
+            Divider()
         }
     }
-    return timetableMap
+
+    if (showStudentDialog && selectedGroupId != null && selectedTimetableId != null) {
+        LaunchedEffect(selectedGroupId) {
+            students = fetchStudentsForGroup(selectedGroupId!!)
+        }
+
+        StudentListDialog(
+            students = students,
+            onDismiss = { showStudentDialog = false }
+        )
+    }
+}
+@Composable
+fun StudentListDialog(students: Map<String, String>, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = { onDismiss() },
+        title = { Text("List of Students") },
+        text = {
+            LazyColumn {
+                items(students.toList()) { (_, studentName) ->
+                    Text(text = studentName, modifier = Modifier.padding(8.dp))
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onDismiss() }) {
+                Text("Close")
+            }
+        }
+    )
+}
+fun getCurrentTimetableEntry(timetable: Map<String, TimetableEntry>): TimetableEntry? {
+    val currentTime = Calendar.getInstance()
+    val currentHour = currentTime.get(Calendar.HOUR_OF_DAY)
+    val currentMinute = currentTime.get(Calendar.MINUTE)
+    val currentDay = SimpleDateFormat("EEEE", Locale.getDefault()).format(currentTime.time) // Get current day
+
+    return timetable.values.firstOrNull { entry ->
+        val startHour = entry.startTime.split(":")[0].toInt()
+        val startMinute = entry.startTime.split(":")[1].toInt()
+        val endHour = entry.endTime.split(":")[0].toInt()
+        val endMinute = entry.endTime.split(":")[1].toInt()
+
+        val isToday = entry.selectedDay.equals(currentDay, ignoreCase = true)
+        val isCurrentTime =
+            (currentHour > startHour || (currentHour == startHour && currentMinute >= startMinute)) &&
+                    (currentHour < endHour || (currentHour == endHour && currentMinute <= endMinute))
+
+        isToday && isCurrentTime
+    }
 }
 
-suspend fun fetchAllGroups(): Map<String, String> {
-    val database = FirebaseDatabase.getInstance()
-    val groupsRef = database.getReference("levels")
 
-    val groupsSnapshot = groupsRef.get().await()
-    val groupsMap = mutableMapOf<String, String>()
-    for (levelSnapshot in groupsSnapshot.children) {
-        val levelId = levelSnapshot.key
-        val groups = levelSnapshot.child("groups").children
-        for (groupSnapshot in groups) {
-            val groupId = groupSnapshot.key
-            val groupName = groupSnapshot.child("name").getValue(String::class.java)
-            if (groupId != null && groupName != null) {
-                groupsMap[groupId] = groupName
+@Composable
+fun CurrentSessionScreen(timetable: Map<String, TimetableEntry>) {
+    val currentTimetableEntry = getCurrentTimetableEntry(timetable)
+    var showStudentDialog by remember { mutableStateOf(false) }
+    var students by remember { mutableStateOf(mapOf<String, String>()) }
+    var attendance by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+    val scope = rememberCoroutineScope()
+
+    Column(modifier = Modifier
+        .padding(16.dp)
+        .fillMaxSize()
+        .background(MaterialTheme.colorScheme.background)
+    ) {
+        if (currentTimetableEntry != null) {
+            LaunchedEffect(currentTimetableEntry.groupId, currentTimetableEntry.sessionId) {
+                students = fetchStudentsForGroup(currentTimetableEntry.groupId!!)
+                attendance = fetchAttendance(currentTimetableEntry.sessionId, todayDate)
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+                    .clickable { showStudentDialog = true },
+
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(text = "Current cours", style = MaterialTheme.typography.displayLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = "Time: ${currentTimetableEntry.startTime} - ${currentTimetableEntry.endTime}", style = MaterialTheme.typography.titleMedium)
+                    Text(text = "Level: ${currentTimetableEntry.levelName}", style = MaterialTheme.typography.titleMedium)
+                    Text(text = "Group: ${currentTimetableEntry.groupName}", style = MaterialTheme.typography.titleMedium)
+                    Text(text = "Course: ${currentTimetableEntry.courseName}", style = MaterialTheme.typography.titleMedium)
+                    Text(text = "Classroom: ${currentTimetableEntry.classroomName}", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+
+            DisplaySavedAttendance(
+                timetableId = currentTimetableEntry.sessionId,
+                date = todayDate,
+                students = students,
+                attendance = attendance
+            )
+        } else {
+            Text(
+                text = "No ongoing session right now.",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+        }
+    }
+
+    if (showStudentDialog && currentTimetableEntry != null) {
+        StudentAttendanceDialog(
+            timetableId = currentTimetableEntry.sessionId,
+            todayDate = todayDate,
+            students = students,
+            onDismiss = {
+                scope.launch {
+                    attendance = fetchAttendance(currentTimetableEntry.sessionId, todayDate)
+                }
+                showStudentDialog = false
+            }
+        )
+    }
+}
+
+
+
+
+@Composable
+fun StudentAttendanceDialog(
+    timetableId: String,
+    todayDate: String,
+    students: Map<String, String>,
+    onDismiss: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val attendanceStatus = remember { mutableStateOf(students.keys.associateWith { "" }) }
+
+    AlertDialog(
+        onDismissRequest = { onDismiss() },
+        title = { Text("Record Attendance") },
+        text = {
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(onClick = {
+                        attendanceStatus.value = attendanceStatus.value.keys.associateWith { "Present" }
+                    }) {
+                        Text("All Present")
+                    }
+                    Button(onClick = {
+                        attendanceStatus.value = attendanceStatus.value.keys.associateWith { "Absent" }
+                    }) {
+                        Text("All Absent")
+                    }
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "Student Name", modifier = Modifier.weight(1f))
+                    Text(text = "Present", modifier = Modifier.weight(1f))
+                    Text(text = "Absent", modifier = Modifier.weight(1f))
+                    Text(text = "Late", modifier = Modifier.weight(1f))
+                }
+
+                Divider()
+
+                LazyColumn {
+                    items(students.toList()) { (studentId, studentName) ->
+                        val status = attendanceStatus.value[studentId] ?: ""
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = studentName, modifier = Modifier.weight(1f))
+
+                            RadioButton(
+                                selected = status == "Present",
+                                onClick = {
+                                    attendanceStatus.value = attendanceStatus.value.toMutableMap().apply {
+                                        put(studentId, "Present")
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            RadioButton(
+                                selected = status == "Absent",
+                                onClick = {
+                                    attendanceStatus.value = attendanceStatus.value.toMutableMap().apply {
+                                        put(studentId, "Absent")
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            RadioButton(
+                                selected = status == "Late",
+                                onClick = {
+                                    attendanceStatus.value = attendanceStatus.value.toMutableMap().apply {
+                                        put(studentId, "Late")
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                scope.launch {
+                    saveAttendance(timetableId, attendanceStatus.value, todayDate)
+                }
+                onDismiss()
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            Button(onClick = { onDismiss() }) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+
+/******************************************************/
+@Composable
+fun DisplaySavedAttendance(
+    timetableId: String,
+    date: String,
+    students: Map<String, String>,
+    attendance: Map<String, String>
+) {
+    Column(modifier = Modifier.padding(8.dp)) {
+        Text(text = "Attendance for $date", style = MaterialTheme.typography.titleLarge)
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+        LazyColumn {
+            items(students.toList()) { (studentId, studentName) ->
+                val status = attendance[studentId] ?: "Not Recorded"
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(text = studentName, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                        Text(text = status, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                    }
+                }
             }
         }
     }
-    return groupsMap
 }
 
 
+suspend fun fetchAttendance(timetableId: String, date: String): Map<String, String> {
+    val database = FirebaseDatabase.getInstance()
+    val attendanceRef = database.getReference("attendance").child(timetableId).child(date)
 
-
-
-
-
-
-
+    val attendanceSnapshot = attendanceRef.get().await()
+    val attendanceMap = mutableMapOf<String, String>()
+    for (attendanceEntry in attendanceSnapshot.children) {
+        val studentId = attendanceEntry.key
+        val status = attendanceEntry.child("status").getValue(String::class.java)
+        if (studentId != null && status != null) {
+            attendanceMap[studentId] = status
+        }
+    }
+    return attendanceMap
+}

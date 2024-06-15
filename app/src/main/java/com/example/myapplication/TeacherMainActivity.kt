@@ -78,6 +78,12 @@ class TeacherMainActivity: ComponentActivity() {
                         selectedIcon = Icons.Filled.Settings,
                         unSelectedIcon = Icons.Outlined.Settings,
                     ),
+                    NavigationItem(
+                        title = "StudentsAttendanceTeachers",
+                        route = Screens.StudentsAttendanceTeachers.route,
+                        selectedIcon = Icons.Filled.Settings,
+                        unSelectedIcon = Icons.Outlined.Settings,
+                    ),
 
 
                     NavigationItem(
