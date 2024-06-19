@@ -1424,3 +1424,4 @@ suspend fun fetchAttendance(timetableId: String, date: String): Map<String, Stri
     }
     return attendanceMap
 }
+/****************************************************/
