@@ -618,7 +618,7 @@ suspend fun fetchCourses(): Map<String, String> {
     return coursesMap
 }
 
-suspend fun fetchLevelsa(): Map<String, String> {
+suspend fun fetchLevelsaa(): Map<String, String> {
     val database = FirebaseDatabase.getInstance()
     val levelsRef = database.getReference("levels")
 
@@ -829,7 +829,7 @@ fun DisplayTeacherTimetable(teacherId: String) {
             timetable = fetchTeacherTimetable(classrooms, courses, levels, groups, teacherId)
         }
     }
-
+    AttendanceSelectorScreen()
     Column(modifier = Modifier.padding(8.dp)) {
         if (timetable.isNotEmpty()) {
             TeacherScreen(timetable)
@@ -837,6 +837,7 @@ fun DisplayTeacherTimetable(teacherId: String) {
             Text(text = "No timetable available for this teacher.", style = MaterialTheme.typography.bodyMedium)
         }
     }
+
 }
 @Composable
 fun TeacherScreen(timetable: Map<String, TimetableEntry>) {
@@ -1424,4 +1425,299 @@ suspend fun fetchAttendance(timetableId: String, date: String): Map<String, Stri
     }
     return attendanceMap
 }
-/****************************************************/
+/*******************************************************************************************************************************************************************************/
+@Composable
+fun AttendanceSelectorScreen() {
+    val scope = rememberCoroutineScope()
+
+    var levels by remember { mutableStateOf(mapOf<String, String>()) }
+    var selectedLevelId by remember { mutableStateOf<String?>(null) }
+    var groups by remember { mutableStateOf(mapOf<String, String>()) }
+    var selectedGroupId by remember { mutableStateOf<String?>(null) }
+    var timetableEntries by remember { mutableStateOf(mapOf<String, TimetableEntry>()) }
+    var selectedTimetableId by remember { mutableStateOf<String?>(null) }
+    var selectedDate by remember { mutableStateOf<String?>(null) }
+    var students by remember { mutableStateOf(mapOf<String, String>()) }
+    var attendance by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+
+    LaunchedEffect(Unit) {
+        levels = newFetchLevels()
+    }
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        newDropdownMenuSelection(
+            label = "Select Level",
+            options = levels,
+            selectedOptionId = selectedLevelId
+        ) { levelId ->
+            selectedLevelId = levelId
+            scope.launch {
+                groups = newFetchGroupsForLevel(levelId)
+                selectedGroupId = null
+                selectedTimetableId = null
+                selectedDate = null
+                students = mapOf()
+                attendance = mapOf()
+            }
+        }
+
+        if (selectedLevelId != null) {
+            newDropdownMenuSelection(
+                label = "Select Group",
+                options = groups,
+                selectedOptionId = selectedGroupId
+            ) { groupId ->
+                selectedGroupId = groupId
+                scope.launch {
+                    timetableEntries = newFetchTimetableEntriesForGroup(groupId)
+                    selectedTimetableId = null
+                    selectedDate = null
+                    students = mapOf()
+                    attendance = mapOf()
+                }
+            }
+        }
+
+        if (selectedGroupId != null) {
+            newDropdownMenuSelection(
+                label = "Select Date",
+                options = newGenerateDateOptions(),
+                selectedOptionId = selectedDate
+            ) { date ->
+                selectedDate = date
+                selectedTimetableId = null
+                students = mapOf()
+                attendance = mapOf()
+            }
+        }
+
+        if (selectedDate != null) {
+            newDropdownMenuSelection(
+                label = "Select Timetable Entry",
+                options = timetableEntries.map { it.key to "${it.value.startTime} - ${it.value.endTime}" }.toMap(),
+                selectedOptionId = selectedTimetableId
+            ) { timetableId ->
+                selectedTimetableId = timetableId
+                scope.launch {
+                    val selectedTimetableEntry = timetableEntries[timetableId]
+                    if (selectedTimetableEntry != null) {
+                        students = newFetchStudentsForGroup(selectedTimetableEntry.groupId!!)
+                        attendance = newFetchAttendance(selectedTimetableEntry.sessionId, selectedDate!!)
+                    }
+                }
+            }
+        }
+
+        if (selectedTimetableId != null && selectedDate != null) {
+            val selectedTimetableEntry = timetableEntries[selectedTimetableId]
+            if (selectedTimetableEntry != null) {
+                newDisplayTimetableWithAttendance(
+                    timetableEntry = selectedTimetableEntry,
+                    date = selectedDate!!,
+                    students = students,
+                    attendance = attendance
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun newDropdownMenuSelection(
+    label: String,
+    options: Map<String, String>,
+    selectedOptionId: String?,
+    onOptionSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedOptionText = options[selectedOptionId]
+
+    Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        TextField(
+            value = selectedOptionText ?: "",
+            onValueChange = {},
+            label = { Text(label) },
+            readOnly = true,
+            trailingIcon = {
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null, Modifier.clickable { expanded = true })
+            },
+            modifier = Modifier.fillMaxWidth().clickable { expanded = true }
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            options.forEach { (key, value) ->
+                DropdownMenuItem(onClick = {
+                    onOptionSelected(key)
+                    expanded = false
+                }, text =  {
+                    Text(text = value)
+                })
+            }
+        }
+    }
+}
+
+fun newGenerateDateOptions(): Map<String, String> {
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val calendar = Calendar.getInstance()
+    return (0..30).associate {
+        val date = calendar.time
+        val dateString = dateFormat.format(date)
+        calendar.add(Calendar.DAY_OF_MONTH, 1)
+        dateString to dateString
+    }
+}
+
+suspend fun newFetchLevels(): Map<String, String> {
+    val database = FirebaseDatabase.getInstance()
+    val levelsRef = database.getReference("levels")
+
+    val levelsSnapshot = levelsRef.get().await()
+    val levelsMap = mutableMapOf<String, String>()
+    for (levelSnapshot in levelsSnapshot.children) {
+        val levelId = levelSnapshot.key
+        val levelName = levelSnapshot.child("name").getValue(String::class.java)
+        if (levelId != null && levelName != null) {
+            levelsMap[levelId] = levelName
+        }
+    }
+    return levelsMap
+}
+
+suspend fun newFetchGroupsForLevel(levelId: String): Map<String, String> {
+    val database = FirebaseDatabase.getInstance()
+    val groupsRef = database.getReference("levels/$levelId/groups")
+
+    val groupsSnapshot = groupsRef.get().await()
+    val groupsMap = mutableMapOf<String, String>()
+    for (groupSnapshot in groupsSnapshot.children) {
+        val groupId = groupSnapshot.key
+        val groupName = groupSnapshot.child("name").getValue(String::class.java)
+        if (groupId != null && groupName != null) {
+            groupsMap[groupId] = groupName
+        }
+    }
+    return groupsMap
+}
+
+suspend fun newFetchTimetableEntriesForGroup(groupId: String): Map<String, TimetableEntry> {
+    val database = FirebaseDatabase.getInstance()
+    val timetableRef = database.getReference("timetable")
+
+    // Fetch additional details for classrooms, teachers, and courses
+    val classrooms = fetchClassrooms()
+    val teachers = fetchTeachers()
+    val courses = fetchCourses()
+
+    val timetableSnapshot = timetableRef.get().await()
+    val timetableMap = mutableMapOf<String, TimetableEntry>()
+    for (timetableEntrySnapshot in timetableSnapshot.children) {
+        val timetableEntry = timetableEntrySnapshot.getValue(TimetableEntry::class.java)
+        if (timetableEntry != null && timetableEntry.groupId == groupId) {
+            timetableEntry.classroomName = classrooms[timetableEntry.classroomId] ?: ""
+            timetableEntry.teacherName = teachers[timetableEntry.teacherId] ?: ""
+            timetableEntry.courseName = courses[timetableEntry.courseId] ?: ""
+            timetableEntrySnapshot.key?.let { timetableEntry.sessionId = it }
+            timetableEntrySnapshot.key?.let { timetableMap[it] = timetableEntry }
+        }
+    }
+    return timetableMap
+}
+
+
+
+
+suspend fun newFetchStudentsForGroup(groupId: String): Map<String, String> {
+    val database = FirebaseDatabase.getInstance()
+    val studentsRef = database.getReference("users/students")
+
+    val studentsSnapshot = studentsRef.get().await()
+    val studentsMap = mutableMapOf<String, String>()
+    for (studentSnapshot in studentsSnapshot.children) {
+        val studentId = studentSnapshot.key
+        val studentGroupId = studentSnapshot.child("groupId").getValue(String::class.java)
+        val studentName = studentSnapshot.child("name").getValue(String::class.java)
+        val studentFamilyName = studentSnapshot.child("familyname").getValue(String::class.java)
+        if (studentId != null && studentGroupId == groupId && studentName != null && studentFamilyName != null) {
+            studentsMap[studentId] = "$studentFamilyName $studentName"
+        }
+    }
+    return studentsMap
+}
+
+suspend fun newFetchAttendance(timetableId: String, date: String): Map<String, String> {
+    val database = FirebaseDatabase.getInstance()
+    val attendanceRef = database.getReference("attendance").child(timetableId).child(date)
+
+    val attendanceSnapshot = attendanceRef.get().await()
+    val attendanceMap = mutableMapOf<String, String>()
+    for (attendanceEntry in attendanceSnapshot.children) {
+        val studentId = attendanceEntry.key
+        val status = attendanceEntry.child("status").getValue(String::class.java)
+        if (studentId != null && status != null) {
+            attendanceMap[studentId] = status
+        }
+    }
+    return attendanceMap
+}
+
+@Composable
+fun newDisplayTimetableWithAttendance(
+    timetableEntry: TimetableEntry,
+    date: String,
+    students: Map<String, String>,
+    attendance: Map<String, String>
+) {
+    Column(modifier = Modifier.padding(8.dp)) {
+
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+        Text(text = "Information cours", style = MaterialTheme.typography.titleLarge)
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+
+
+            ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "Course:       ${timetableEntry.courseName}", style = MaterialTheme.typography.titleMedium)
+                Text(text = "Teacher:     ${timetableEntry.teacherName}", style = MaterialTheme.typography.titleMedium)
+                Text(text = "Classroom: ${timetableEntry.classroomName}", style = MaterialTheme.typography.titleMedium)
+
+            }
+        }
+
+
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+        Text(text = "Attendance for $date", style = MaterialTheme.typography.titleLarge)
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+        LazyColumn {
+            items(students.toList()) { (studentId, studentName) ->
+                val status = attendance[studentId] ?: "Not Recorded"
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(text = studentName, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                        Text(text = status, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+        }
+    }
+}
