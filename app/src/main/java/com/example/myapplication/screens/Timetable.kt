@@ -829,7 +829,7 @@ fun DisplayTeacherTimetable(teacherId: String) {
             timetable = fetchTeacherTimetable(classrooms, courses, levels, groups, teacherId)
         }
     }
-    AttendanceSelectorScreen()
+
     Column(modifier = Modifier.padding(8.dp)) {
         if (timetable.isNotEmpty()) {
             TeacherScreen(timetable)
@@ -1247,7 +1247,7 @@ fun CurrentSessionScreen(timetable: Map<String, TimetableEntry>) {
             )
         } else {
             Text(
-                text = "No ongoing session right now.",
+                text = "No ongoing cours right now.",
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
@@ -1567,7 +1567,7 @@ fun newGenerateDateOptions(): Map<String, String> {
     return (0..30).associate {
         val date = calendar.time
         val dateString = dateFormat.format(date)
-        calendar.add(Calendar.DAY_OF_MONTH, 1)
+        calendar.add(Calendar.DAY_OF_MONTH, -1)
         dateString to dateString
     }
 }
@@ -1721,3 +1721,5 @@ fun newDisplayTimetableWithAttendance(
         }
     }
 }
+/***********************************************************************************************************************************/
+

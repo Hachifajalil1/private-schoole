@@ -84,6 +84,12 @@ class AdminMainActivity: ComponentActivity() {
                         selectedIcon = Icons.Filled.Settings,
                         unSelectedIcon = Icons.Outlined.Settings,
                     ),
+                    NavigationItem(
+                        title = "Students attendance",
+                        route = Screens.StudentsAttendanceAdmin.route,
+                        selectedIcon = Icons.Filled.Settings,
+                        unSelectedIcon = Icons.Outlined.Settings,
+                    ),
 
                     NavigationItem(
                         title = "Admins",

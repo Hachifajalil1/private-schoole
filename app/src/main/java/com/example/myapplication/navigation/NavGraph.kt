@@ -67,6 +67,13 @@ fun SetUpNavGraph(
         composable(Screens.StudentsAttendanceTeachers.route){
             StudentsAttendanceTeachers(innerPadding = innerPadding)
         }
+        composable(Screens.StudentsAttendanceAdmin.route){
+         StudentsAttendanceAdmin(innerPadding = innerPadding)
+        }
+        composable(Screens.TimetableStudentsParents.route){
+            TimetableStudentsParents(innerPadding = innerPadding)
+        }
+
 
     }
 }

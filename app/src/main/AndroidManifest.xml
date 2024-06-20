@@ -16,6 +16,9 @@
         <activity android:name=".MainActivity"
             android:label="@string/admin_activity_title">
         </activity>
+        <activity android:name=".ParentMainActivity"
+            android:label="@string/admin_activity_title">
+        </activity>
         <activity android:name=".AdminMainActivity"
             android:label="@string/admin_activity_title">
 

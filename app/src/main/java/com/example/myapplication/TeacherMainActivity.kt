@@ -73,13 +73,13 @@ class TeacherMainActivity: ComponentActivity() {
                     ),
 
                     NavigationItem(
-                        title = "TimetableTeachers",
+                        title = "Timetable",
                         route = Screens.TimetableTeachers.route,
                         selectedIcon = Icons.Filled.Settings,
                         unSelectedIcon = Icons.Outlined.Settings,
                     ),
                     NavigationItem(
-                        title = "StudentsAttendanceTeachers",
+                        title = "Students Attendance",
                         route = Screens.StudentsAttendanceTeachers.route,
                         selectedIcon = Icons.Filled.Settings,
                         unSelectedIcon = Icons.Outlined.Settings,
