@@ -80,7 +80,7 @@ class ParentMainActivity: ComponentActivity() {
                     ),
                     NavigationItem(
                         title = "Students Attendance",
-                        route = Screens.StudentsAttendanceTeachers.route,
+                        route = Screens.StudentsAttendanceParents.route,
                         selectedIcon = Icons.Filled.Settings,
                         unSelectedIcon = Icons.Outlined.Settings,
                     ),

@@ -73,7 +73,7 @@ class StudentMainActivity: ComponentActivity() {
                     ),
 
                     NavigationItem(
-                        title = "TimetableStudents",
+                        title = "Timetable",
                         route = Screens.TimetableStudents.route,
                         selectedIcon = Icons.Filled.Settings,
                         unSelectedIcon = Icons.Outlined.Settings,

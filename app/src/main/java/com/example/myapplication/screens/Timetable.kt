@@ -207,14 +207,114 @@ fun LevelGroupTimetable() {
             ) { groupId ->
                 selectedGroupId = groupId
             }
+
         }
 
+
         if (selectedGroupId != null) {
+            Spacer(modifier = Modifier.height(30.dp))
+
+            Text(text = "Timetable:", style = MaterialTheme.typography.titleLarge)
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+
             GroupTimetable(selectedGroupId!!, timetable)
         }
     }
 }
+@Composable
+fun GroupTimetableStudents(groupId: String, timetable: Map<String, TimetableEntry>) {
+    val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
+    val scrollStateHorizontal = rememberScrollState()
+    val scrollStateVertical = rememberScrollState()
+    val scope = rememberCoroutineScope()
+
+    Column(modifier = Modifier
+        .padding(8.dp)
+        .verticalScroll(scrollStateVertical)) {
+        // Header Row
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .horizontalScroll(scrollStateHorizontal)) {
+            Card(
+                modifier = Modifier
+                    .width(200.dp)
+                    .padding(4.dp),
+                shape = RoundedCornerShape(8.dp),
+
+                ) {
+                Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.Center) {
+                    Text(text = "Time | Days", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+            daysOfWeek.forEach { day ->
+                Card(
+                    modifier = Modifier
+                        .width(200.dp)
+                        .padding(4.dp),
+                    shape = RoundedCornerShape(8.dp),
+
+                    ) {
+                    Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.Center) {
+                        Text(text = day, style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+        }
+
+        // Find all unique time slots
+        val timeSlots = timetable.values.map { it.startTime to it.endTime }.distinct().sortedBy { it.first }
+
+        // For each time slot, create a row with classes scheduled in that time slot
+        timeSlots.forEach { (startTime, endTime) ->
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .horizontalScroll(scrollStateHorizontal)) {
+                Card(
+                    modifier = Modifier
+                        .width(200.dp)
+                        .padding(4.dp),
+                    shape = RoundedCornerShape(8.dp),
+
+                    ) {
+                    Box(modifier = Modifier.padding(32.dp), contentAlignment = Alignment.Center) {
+                        Text(text = "$startTime - $endTime", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+
+                daysOfWeek.forEach { day ->
+                    val dayTimetable = timetable.filter { it.value.groupId == groupId && it.value.selectedDay == day && it.value.startTime == startTime && it.value.endTime == endTime }
+                    Card(
+                        modifier = Modifier
+                            .width(200.dp)
+                            .padding(4.dp),
+                        shape = RoundedCornerShape(8.dp),
+
+                        ) {
+                        if (dayTimetable.isNotEmpty()) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                dayTimetable.forEach { (entryId, entry) ->
+                                    Column (){
+                                        Text(text = entry.courseName, style = MaterialTheme.typography.labelMedium)
+                                        Text(text = entry.classroomName, style = MaterialTheme.typography.labelMedium)
+                                        Text(text = entry.teacherName, style = MaterialTheme.typography.labelMedium)
+
+                                    }
+                                }
+                            }
+                        } else {
+                            Box(modifier = Modifier.padding(32.dp), contentAlignment = Alignment.Center) {
+                                Text(text = "/", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 @Composable
 fun GroupTimetable(groupId: String, timetable: Map<String, TimetableEntry>) {
     val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
@@ -223,55 +323,99 @@ fun GroupTimetable(groupId: String, timetable: Map<String, TimetableEntry>) {
     val scrollStateVertical = rememberScrollState()
     val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.padding(8.dp).verticalScroll(scrollStateVertical)) {
+    Column(modifier = Modifier
+        .padding(8.dp)
+        .verticalScroll(scrollStateVertical)) {
         // Header Row
-        Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(scrollStateHorizontal)) {
-            Text(text = "Time", style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(100.dp))
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .horizontalScroll(scrollStateHorizontal)) {
+            Card(
+                modifier = Modifier
+                    .width(200.dp)
+                    .padding(4.dp),
+                shape = RoundedCornerShape(8.dp),
+
+            ) {
+                Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.Center) {
+                    Text(text = "Time | Days", style = MaterialTheme.typography.labelMedium)
+                }
+            }
             daysOfWeek.forEach { day ->
-                Text(text = day, style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(200.dp))
+                Card(
+                    modifier = Modifier
+                        .width(200.dp)
+                        .padding(4.dp),
+                    shape = RoundedCornerShape(8.dp),
+
+                ) {
+                    Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.Center) {
+                        Text(text = day, style = MaterialTheme.typography.labelMedium)
+                    }
+                }
             }
         }
-
-        // Divider after header row
-        Divider()
 
         // Find all unique time slots
         val timeSlots = timetable.values.map { it.startTime to it.endTime }.distinct().sortedBy { it.first }
 
         // For each time slot, create a row with classes scheduled in that time slot
         timeSlots.forEach { (startTime, endTime) ->
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).horizontalScroll(scrollStateHorizontal)) {
-                Text(text = "$startTime - $endTime", modifier = Modifier.width(100.dp))
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .horizontalScroll(scrollStateHorizontal)) {
+                Card(
+                    modifier = Modifier
+                        .width(200.dp)
+                        .padding(4.dp),
+                    shape = RoundedCornerShape(8.dp),
+
+                ) {
+                    Box(modifier = Modifier.padding(56.dp), contentAlignment = Alignment.Center) {
+                        Text(text = "$startTime - $endTime", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
 
                 daysOfWeek.forEach { day ->
                     val dayTimetable = timetable.filter { it.value.groupId == groupId && it.value.selectedDay == day && it.value.startTime == startTime && it.value.endTime == endTime }
-                    Column(modifier = Modifier.width(200.dp).padding(4.dp)) {
+                    Card(
+                        modifier = Modifier
+                            .width(200.dp)
+                            .padding(4.dp),
+                        shape = RoundedCornerShape(8.dp),
+
+                    ) {
                         if (dayTimetable.isNotEmpty()) {
-                            dayTimetable.forEach { (entryId, entry) ->
-                                Column {
-                                    Text(text = entry.courseName)
-                                    Text(text = "${entry.classroomName}")
-                                    Text(text = "${entry.teacherName}")
-                                    IconButton(onClick = {
-                                        scope.launch {
-                                            deleteTimetableEntry(entryId)
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                dayTimetable.forEach { (entryId, entry) ->
+                                    Column (){
+                                        Text(text = entry.courseName, style = MaterialTheme.typography.labelMedium)
+                                        Text(text = entry.classroomName, style = MaterialTheme.typography.labelMedium)
+                                        Text(text = entry.teacherName, style = MaterialTheme.typography.labelMedium)
+                                        IconButton(onClick = {
+                                            scope.launch {
+                                                deleteTimetableEntry(entryId)
+                                            }
+                                        }) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Delete Timetable Entry")
                                         }
-                                    }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete Timetable Entry")
                                     }
                                 }
                             }
                         } else {
-                            Text(text = "/")
+                            Box(modifier = Modifier.padding(56.dp), contentAlignment = Alignment.Center) {
+                                Text(text = "/", style = MaterialTheme.typography.labelMedium)
+                            }
                         }
                     }
                 }
             }
-            // Divider between rows
-            Divider()
         }
     }
 }
+
 
 @Composable
 fun LevelGroupSelectionDialog(
@@ -804,7 +948,7 @@ fun DisplayGroupTimetable(groupId: String) {
 
     Column(modifier = Modifier.padding(8.dp)) {
         if (timetable.isNotEmpty()) {
-            GroupTimetable(groupId, timetable)
+            GroupTimetableStudents(groupId, timetable)
         } else {
             Text(text = "No timetable available for this group.", style = MaterialTheme.typography.bodyMedium)
         }
@@ -842,7 +986,7 @@ fun DisplayTeacherTimetable(teacherId: String) {
 @Composable
 fun TeacherScreen(timetable: Map<String, TimetableEntry>) {
     Column {
-        Text("Full Timetable", style = MaterialTheme.typography.labelMedium)
+
         TimetableScreen(timetable)
 
     }
@@ -951,7 +1095,9 @@ fun StudentDialog(timetableId: String, todayDate: String, students: Map<String, 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth().padding(8.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
                     ) {
                         Text(text = studentName, modifier = Modifier.weight(1f))
                         DropdownMenu(
@@ -1017,9 +1163,14 @@ fun TeacherTimetable(timetable: Map<String, TimetableEntry>) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.padding(8.dp).verticalScroll(scrollStateVertical)) {
+    Column(modifier = Modifier
+        .padding(8.dp)
+        .verticalScroll(scrollStateVertical)) {
         // Header Row
-        Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(scrollStateHorizontal)) {
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .horizontalScroll(scrollStateHorizontal)) {
             Text(text = "Time", style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(100.dp))
             daysOfWeek.forEach { day ->
                 Text(text = day, style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(200.dp))
@@ -1034,12 +1185,17 @@ fun TeacherTimetable(timetable: Map<String, TimetableEntry>) {
 
         // For each time slot, create a row with classes scheduled in that time slot
         timeSlots.forEach { (startTime, endTime) ->
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).horizontalScroll(scrollStateHorizontal)) {
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .horizontalScroll(scrollStateHorizontal)) {
                 Text(text = "$startTime - $endTime", modifier = Modifier.width(100.dp))
 
                 daysOfWeek.forEach { day ->
                     val dayTimetable = timetable.filter { it.value.selectedDay == day && it.value.startTime == startTime && it.value.endTime == endTime }
-                    Column(modifier = Modifier.width(200.dp).padding(4.dp)) {
+                    Column(modifier = Modifier
+                        .width(200.dp)
+                        .padding(4.dp)) {
                         if (dayTimetable.isNotEmpty()) {
                             dayTimetable.forEach { (timetableId, entry) ->
                                 Column(modifier = Modifier.clickable {
@@ -1100,51 +1256,95 @@ fun TimetableScreen(timetable: Map<String, TimetableEntry>) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.padding(8.dp).verticalScroll(scrollStateVertical)) {
+    Column(modifier = Modifier
+        .padding(8.dp)
+        .verticalScroll(scrollStateVertical)) {
         // Header Row
-        Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(scrollStateHorizontal)) {
-            Text(text = "Time", style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(100.dp))
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .horizontalScroll(scrollStateHorizontal)) {
+            Card(
+                modifier = Modifier
+                    .width(200.dp)
+                    .padding(4.dp),
+                shape = RoundedCornerShape(8.dp),
+
+                ) {
+                Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.Center) {
+                    Text(text = "Time | Days", style = MaterialTheme.typography.labelMedium)
+                }
+            }
             daysOfWeek.forEach { day ->
-                Text(text = day, style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(200.dp))
+                Card(
+                    modifier = Modifier
+                        .width(200.dp)
+                        .padding(4.dp),
+                    shape = RoundedCornerShape(8.dp),
+
+                    ) {
+                    Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.Center) {
+                        Text(text = day, style = MaterialTheme.typography.labelMedium)
+                    }
+                }
             }
         }
-
-        // Divider after header row
-        Divider()
 
         // Find all unique time slots
         val timeSlots = timetable.values.map { it.startTime to it.endTime }.distinct().sortedBy { it.first }
 
         // For each time slot, create a row with classes scheduled in that time slot
         timeSlots.forEach { (startTime, endTime) ->
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).horizontalScroll(scrollStateHorizontal)) {
-                Text(text = "$startTime - $endTime", modifier = Modifier.width(100.dp))
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .horizontalScroll(scrollStateHorizontal)) {
+                Card(
+                    modifier = Modifier
+                        .width(200.dp)
+                        .padding(4.dp),
+                    shape = RoundedCornerShape(8.dp),
+
+                    ) {
+                    Box(modifier = Modifier.padding(40.dp), contentAlignment = Alignment.Center) {
+                        Text(text = "$startTime - $endTime", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
 
                 daysOfWeek.forEach { day ->
                     val dayTimetable = timetable.filter { it.value.selectedDay == day && it.value.startTime == startTime && it.value.endTime == endTime }
-                    Column(modifier = Modifier.width(200.dp).padding(4.dp)) {
-                        if (dayTimetable.isNotEmpty()) {
-                            dayTimetable.forEach { (timetableId, entry) ->
-                                Column(modifier = Modifier.clickable {
-                                    selectedGroupId = entry.groupId
-                                    selectedTimetableId = timetableId
-                                    showStudentDialog = true
-                                }) {
-                                    Text(text = " ${entry.levelName}")
-                                    Text(text = " ${entry.groupName}")
-                                    Text(text = " ${entry.courseName}")
-                                    Text(text = " ${entry.classroomName}")
+                    Card(
+                        modifier = Modifier
+                            .width(200.dp)
+                            .padding(4.dp),
+                        shape = RoundedCornerShape(8.dp),
 
+                        ) {
+                        if (dayTimetable.isNotEmpty()) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                dayTimetable.forEach { (timetableId, entry) ->
+                                    Column(modifier = Modifier.clickable {
+                                        selectedGroupId = entry.groupId
+                                        selectedTimetableId = timetableId
+                                        showStudentDialog = true
+                                    }){
+                                        Text(text = entry.levelName, style = MaterialTheme.typography.labelMedium)
+                                        Text(text = entry.groupName, style = MaterialTheme.typography.labelMedium)
+                                        Text(text = entry.courseName, style = MaterialTheme.typography.labelMedium)
+                                        Text(text = entry.classroomName, style = MaterialTheme.typography.labelMedium)
+
+
+                                    }
                                 }
                             }
                         } else {
-                            Text(text = "/")
+                            Box(modifier = Modifier.padding(40.dp), contentAlignment = Alignment.Center) {
+                                Text(text = "/", style = MaterialTheme.typography.labelMedium)
+                            }
                         }
                     }
                 }
             }
-            // Divider between rows
-            Divider()
         }
     }
 
@@ -1167,7 +1367,21 @@ fun StudentListDialog(students: Map<String, String>, onDismiss: () -> Unit) {
         text = {
             LazyColumn {
                 items(students.toList()) { (_, studentName) ->
-                    Text(text = studentName, modifier = Modifier.padding(8.dp))
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(text = studentName, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+
+                        }
+                    }
                 }
             }
         },
@@ -1532,7 +1746,9 @@ fun newDropdownMenuSelection(
     var expanded by remember { mutableStateOf(false) }
     val selectedOptionText = options[selectedOptionId]
 
-    Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+    Box(modifier = Modifier
+        .fillMaxWidth()
+        .padding(vertical = 8.dp)) {
         TextField(
             value = selectedOptionText ?: "",
             onValueChange = {},
@@ -1541,7 +1757,9 @@ fun newDropdownMenuSelection(
             trailingIcon = {
                 Icon(Icons.Default.ArrowDropDown, contentDescription = null, Modifier.clickable { expanded = true })
             },
-            modifier = Modifier.fillMaxWidth().clickable { expanded = true }
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true }
         )
 
         DropdownMenu(

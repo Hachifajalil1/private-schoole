@@ -96,63 +96,36 @@ import java.util.Calendar
 
 
 
-
-
 @Composable
-fun TimetableStudentsParents(innerPadding: PaddingValues) {
+fun StudentsAttendanceParents(innerPadding: PaddingValues) {
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
     val userId = sharedPreferences.getString("userId", "No userId")
 
     if (userId != null) {
         Column(modifier = Modifier.padding(innerPadding)) {
-            ParentSelectorScreen(userId)
+            ParentSelectorScreens(userId)
         }
     } else {
         Text(text = "No user ID found", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(innerPadding))
     }
 }
 
-suspend fun fetchStudentsByParentId(parentId: String): Map<String, Triple<String, String, String>> {
-    val database = FirebaseDatabase.getInstance()
-    val studentsRef = database.getReference("users/students")
 
-    val studentsSnapshot = studentsRef.get().await()
-    val studentsMap = mutableMapOf<String, Triple<String, String, String>>()
-    for (studentSnapshot in studentsSnapshot.children) {
-        val studentId = studentSnapshot.key
-        val studentParentId = studentSnapshot.child("parentId").getValue(String::class.java)
-        val studentName = studentSnapshot.child("name").getValue(String::class.java)
-        val studentFamilyName = studentSnapshot.child("familyname").getValue(String::class.java)
-        val groupId = studentSnapshot.child("groupId").getValue(String::class.java)
-        val levelId = studentSnapshot.child("levelId").getValue(String::class.java)
-        if (studentId != null && studentParentId == parentId && studentName != null && studentFamilyName != null && groupId != null && levelId != null) {
-            studentsMap[studentId] = Triple("$studentFamilyName $studentName", levelId, groupId)
-        }
-    }
-    return studentsMap
-}
 
-suspend fun fetchLevelName(levelId: String): String {
-    val database = FirebaseDatabase.getInstance()
-    val levelRef = database.getReference("levels/$levelId")
 
-    val levelSnapshot = levelRef.get().await()
-    return levelSnapshot.child("name").getValue(String::class.java) ?: "Unknown Level"
-}
 
-suspend fun fetchGroupName(levelId: String, groupId: String): String {
-    val database = FirebaseDatabase.getInstance()
-    val groupRef = database.getReference("levels/$levelId/groups/$groupId")
 
-    val groupSnapshot = groupRef.get().await()
-    return groupSnapshot.child("name").getValue(String::class.java) ?: "Unknown Group"
-}
 
 @Composable
-fun ParentSelectorScreen(parentId: String) {
+fun ParentSelectorScreens(parentId: String) {
     var students by remember { mutableStateOf(mapOf<String, Triple<String, String, String>>()) }
+    var selectedStudentId by remember { mutableStateOf<String?>(null) }
     var selectedGroupId by remember { mutableStateOf<String?>(null) }
+    var selectedDate by remember { mutableStateOf<String?>(null) }
+    var selectedTime by remember { mutableStateOf<String?>(null) }
+    var attendance by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var studentTimetableEntries by remember { mutableStateOf(mapOf<String, TimetableEntry>()) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(parentId) {
@@ -163,55 +136,113 @@ fun ParentSelectorScreen(parentId: String) {
 
     Column(modifier = Modifier.padding(16.dp)) {
         if (students.isNotEmpty()) {
-            Text(text = "Students List", style = MaterialTheme.typography.titleLarge)
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-            LazyColumn {
-                items(students.toList()) { (studentId, studentInfo) ->
-                    val (studentName, levelId, groupId) = studentInfo
-                    var levelName by remember { mutableStateOf("Loading...") }
-                    var groupName by remember { mutableStateOf("Loading...") }
-
-                    LaunchedEffect(levelId) {
-                        scope.launch {
-                            levelName = fetchLevelName(levelId)
-                        }
-                    }
-                    LaunchedEffect(groupId) {
-                        scope.launch {
-                            groupName = fetchGroupName(levelId, groupId)
-                        }
-                    }
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .clickable {
-                                selectedGroupId = groupId
-                            },
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(modifier = Modifier.padding(16.dp)) {
-                            Text(text = studentName, style = MaterialTheme.typography.titleLarge)
-                            Text(text = "  $levelName", style = MaterialTheme.typography.labelMedium)
-                            Text(text = "  $groupName", style = MaterialTheme.typography.labelMedium)
-                        }
+            newDropdownMenuSelection(
+                label = "Select Student",
+                options = students.map { it.key to it.value.first }.toMap(),
+                selectedOptionId = selectedStudentId
+            ) { studentId ->
+                selectedStudentId = studentId
+                selectedGroupId = students[studentId]?.third
+                scope.launch {
+                    selectedGroupId?.let {
+                        studentTimetableEntries = newFetchTimetableEntriesForGroup(it)
                     }
                 }
             }
-        } else {
-            Text(text = "No students found for this parent ID", style = MaterialTheme.typography.labelMedium)
-        }
 
-        Spacer(modifier = Modifier.height(30.dp))
+            if (selectedStudentId != null && selectedGroupId != null) {
 
-        Text(text = "Timetable:", style = MaterialTheme.typography.titleLarge)
-        Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-        selectedGroupId?.let { groupId ->
-            DisplayGroupTimetable(groupId)
+                newDropdownMenuSelection(
+                    label = "Select Date",
+                    options = newGenerateDateOptions(),
+                    selectedOptionId = selectedDate
+                ) { date ->
+                    selectedDate = date
+                }
+
+                if (selectedDate != null) {
+                    newDropdownMenuSelection(
+                        label = "Select Time",
+                        options = studentTimetableEntries.map { it.key to "${it.value.startTime} - ${it.value.endTime}" }.toMap(),
+                        selectedOptionId = selectedTime
+                    ) { time ->
+                        selectedTime = time
+                        scope.launch {
+                            val selectedTimetableEntry = studentTimetableEntries[time]
+                            if (selectedTimetableEntry != null) {
+                                attendance = newFetchAttendance(selectedTimetableEntry.sessionId, selectedDate!!)
+                            }
+                        }
+                    }
+                }
+
+                if (selectedTime != null && selectedDate != null) {
+                    val selectedTimetableEntry = studentTimetableEntries[selectedTime]
+                    if (selectedTimetableEntry != null) {
+                        newDisplayStudentAttendance(
+                            timetableEntry = selectedTimetableEntry,
+                            date = selectedDate!!,
+                            students = students,
+                            attendance = attendance,
+                            selectedStudentId = selectedStudentId!!
+                        )
+                    }
+                }
+            }
         }
     }
 }
+
+@Composable
+fun newDisplayStudentAttendance(
+    timetableEntry: TimetableEntry,
+    date: String,
+    students: Map<String, Triple<String, String, String>>,
+    attendance: Map<String, String>,
+    selectedStudentId: String
+) {
+    Column(modifier = Modifier.padding(8.dp)) {
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+        Text(text = "Course Information", style = MaterialTheme.typography.titleLarge)
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "Course: ${timetableEntry.courseName}", style = MaterialTheme.typography.titleMedium)
+                Text(text = "Teacher: ${timetableEntry.teacherName}", style = MaterialTheme.typography.titleMedium)
+                Text(text = "Classroom: ${timetableEntry.classroomName}", style = MaterialTheme.typography.titleMedium)
+            }
+        }
+
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+        Text(text = "Attendance for $date", style = MaterialTheme.typography.titleLarge)
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+        val studentInfo = students[selectedStudentId]
+        val studentName = studentInfo?.first ?: "Unknown Student"
+        val status = attendance[selectedStudentId] ?: "Not Recorded"
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(text = studentName, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                Text(text = status, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+
 
