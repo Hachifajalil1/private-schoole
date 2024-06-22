@@ -65,12 +65,7 @@ class ParentMainActivity: ComponentActivity() {
                         selectedIcon = Icons.Filled.Home,
                         unSelectedIcon = Icons.Outlined.Home,
                     ),
-                    NavigationItem(
-                        title = "Profile",
-                        route = Screens.Profile.route,
-                        selectedIcon = Icons.Filled.Person,
-                        unSelectedIcon = Icons.Outlined.Person,
-                    ),
+
 
                     NavigationItem(
                         title = "Timetable",

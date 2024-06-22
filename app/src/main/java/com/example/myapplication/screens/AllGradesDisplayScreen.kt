@@ -1,4 +1,3 @@
-
 package com.example.myapplication
 
 import android.app.TimePickerDialog
@@ -91,153 +90,24 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.room.Update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
 import java.util.Calendar
-
+import java.util.Date
+import java.util.Locale
 @Composable
-fun HomeScreens(innerPadding: PaddingValues) {
-    Column(
-        modifier = Modifier
-            .padding(innerPadding)
-            .fillMaxSize()
-            .background(Color.White),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Home Screen",
-            fontSize = 40.sp,
-            color = Color.Black
-        )
-    }
-}
-@Composable
-fun HomeScreen(innerPadding: PaddingValues) {
+fun AllGradesDisplayScreen(innerPadding: PaddingValues) {
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
-    val userId = sharedPreferences.getString("userId", null)
-    Column(
-        modifier = Modifier
-            .padding(innerPadding)
-            .fillMaxSize()
-            .background(Color.White),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    val userId = sharedPreferences.getString("userId", "No userId")
+    var selectedOption by remember { mutableStateOf("Add Grades") }
 
-    if (userId != null ) {
-        ParentChildrenGradesDisplay(userId)
+    if (userId != null) {
+        Column(modifier = Modifier.padding(innerPadding)) {
+
+            AllGradesDisplayScreens()
+
+        }
     } else {
-        Text(
-            text = "No user ID found or user is not a parent.",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(16.dp)
-        )
-    }
-}}
-
-@Composable
-fun ParentChildrenGradesDisplay(parentId: String) {
-    val scope = rememberCoroutineScope()
-    var children by remember { mutableStateOf<Map<String, String>>(mapOf()) }
-    var selectedChildId by remember { mutableStateOf<String?>(null) }
-    var examNames by remember { mutableStateOf(listOf<String>()) }
-    var selectedExamName by remember { mutableStateOf<String?>(null) }
-    var grades by remember { mutableStateOf<Map<String, String>>(mapOf()) }
-
-    LaunchedEffect(Unit) {
-        scope.launch {
-            children = fetchChildrenForParent(parentId)
-        }
-    }
-
-    Column(modifier = Modifier.padding(16.dp)) {
-        if (children.isNotEmpty()) {
-            DropdownMenuSelection(
-                label = "Select Child",
-                options = children,
-                selectedOptionId = selectedChildId
-            ) { childId ->
-                selectedChildId = childId
-                scope.launch {
-                    val (levelId, groupId) = fetchLevelAndGroupForStudent(childId!!)
-                    examNames = fetchExamNames(levelId, groupId, childId)
-                }
-            }
-
-            if (selectedChildId != null) {
-                DropdownMenuSelection(
-                    label = "Select Exam",
-                    options = examNames.associateWith { it },
-                    selectedOptionId = selectedExamName
-                ) { examName ->
-                    selectedExamName = examName
-                    scope.launch {
-                        val (levelId, groupId) = fetchLevelAndGroupForStudent(selectedChildId!!)
-                        grades = fetchStudentGrades(selectedChildId!!, levelId, groupId, examName!!)
-                    }
-                }
-
-                if (selectedExamName != null) {
-                    LazyColumn {
-                        items(grades.toList()) { (courseName, grade) ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
-                                    Text(
-                                        text = courseName,
-                                        modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                    Text(
-                                        text = grade,
-                                        modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            Text(text = "No children available.", style = MaterialTheme.typography.bodyLarge)
-        }
+        Text(text = "No user ID found", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(16.dp))
     }
 }
-
-
-
-suspend fun fetchChildrenForParent(parentId: String): Map<String, String> {
-    val database = FirebaseDatabase.getInstance()
-    val childrenRef = database.getReference("users/students")
-
-    val childrenSnapshot = childrenRef.get().await()
-    val childrenMap = mutableMapOf<String, String>()
-    for (childSnapshot in childrenSnapshot.children) {
-        val childParentId = childSnapshot.child("parentId").getValue(String::class.java)
-        if (childParentId == parentId) {
-            val childId = childSnapshot.key ?: continue
-            val childName = fetchStudentName(childId)
-            childrenMap[childId] = childName
-        }
-    }
-    return childrenMap
-}
-
-suspend fun fetchLevelAndGroupForStudent(studentId: String): Pair<String, String> {
-    val database = FirebaseDatabase.getInstance()
-    val studentRef = database.getReference("users/students/$studentId")
-
-    val studentSnapshot = studentRef.get().await()
-    val levelId = studentSnapshot.child("levelId").getValue(String::class.java) ?: throw Exception("No level ID")
-    val groupId = studentSnapshot.child("groupId").getValue(String::class.java) ?: throw Exception("No group ID")
-    return Pair(levelId, groupId)
-}
-

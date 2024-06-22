@@ -94,150 +94,145 @@ import kotlinx.coroutines.tasks.await
 import java.util.Calendar
 
 @Composable
-fun HomeScreens(innerPadding: PaddingValues) {
-    Column(
-        modifier = Modifier
-            .padding(innerPadding)
-            .fillMaxSize()
-            .background(Color.White),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Home Screen",
-            fontSize = 40.sp,
-            color = Color.Black
-        )
-    }
-}
-@Composable
-fun HomeScreen(innerPadding: PaddingValues) {
+fun GradesStudents(innerPadding: PaddingValues) {
+    var timetable by remember { mutableStateOf(mapOf<String, TimetableEntry>()) }
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
     val userId = sharedPreferences.getString("userId", null)
-    Column(
-        modifier = Modifier
-            .padding(innerPadding)
-            .fillMaxSize()
-            .background(Color.White),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    val levelId = sharedPreferences.getString("levelId", null)
+    val groupId = sharedPreferences.getString("groupId", null)
 
-    if (userId != null ) {
-        ParentChildrenGradesDisplay(userId)
+    if (userId != null && levelId != null && groupId != null) {
+        Column(modifier = Modifier.padding(innerPadding)) {
+            StudentGradesScreen(innerPadding)
+        }
+    }
+}
+
+@Composable
+fun StudentGradesScreen(innerPadding: PaddingValues) {
+    val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+    val userId = sharedPreferences.getString("userId", null)
+    val userRole = sharedPreferences.getString("userRole", null)
+
+    if (userId != null && userRole == "student") {
+        val levelId = sharedPreferences.getString("levelId", null)
+        val groupId = sharedPreferences.getString("groupId", null)
+
+        if (levelId != null && groupId != null) {
+            StudentGradesDisplay(userId, levelId, groupId)
+        } else {
+            Text(
+                text = "Error: Missing level or group ID.",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
     } else {
         Text(
-            text = "No user ID found or user is not a parent.",
+            text = "No user ID found or user is not a student.",
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(16.dp)
         )
     }
-}}
+}
 
 @Composable
-fun ParentChildrenGradesDisplay(parentId: String) {
+fun StudentGradesDisplay(studentId: String, levelId: String, groupId: String) {
     val scope = rememberCoroutineScope()
-    var children by remember { mutableStateOf<Map<String, String>>(mapOf()) }
-    var selectedChildId by remember { mutableStateOf<String?>(null) }
+    var grades by remember { mutableStateOf<Map<String, String>>(mapOf()) }
     var examNames by remember { mutableStateOf(listOf<String>()) }
     var selectedExamName by remember { mutableStateOf<String?>(null) }
-    var grades by remember { mutableStateOf<Map<String, String>>(mapOf()) }
 
     LaunchedEffect(Unit) {
         scope.launch {
-            children = fetchChildrenForParent(parentId)
+            examNames = fetchExamNames(levelId, groupId, studentId)
         }
     }
 
     Column(modifier = Modifier.padding(16.dp)) {
-        if (children.isNotEmpty()) {
+        if (examNames.isNotEmpty()) {
             DropdownMenuSelection(
-                label = "Select Child",
-                options = children,
-                selectedOptionId = selectedChildId
-            ) { childId ->
-                selectedChildId = childId
+                label = "Select Exam",
+                options = examNames.associateWith { it },
+                selectedOptionId = selectedExamName
+            ) { examName ->
+                selectedExamName = examName
                 scope.launch {
-                    val (levelId, groupId) = fetchLevelAndGroupForStudent(childId!!)
-                    examNames = fetchExamNames(levelId, groupId, childId)
+                    grades = fetchStudentGrades(studentId, levelId, groupId, examName!!)
                 }
             }
 
-            if (selectedChildId != null) {
-                DropdownMenuSelection(
-                    label = "Select Exam",
-                    options = examNames.associateWith { it },
-                    selectedOptionId = selectedExamName
-                ) { examName ->
-                    selectedExamName = examName
-                    scope.launch {
-                        val (levelId, groupId) = fetchLevelAndGroupForStudent(selectedChildId!!)
-                        grades = fetchStudentGrades(selectedChildId!!, levelId, groupId, examName!!)
-                    }
-                }
-
-                if (selectedExamName != null) {
-                    LazyColumn {
-                        items(grades.toList()) { (courseName, grade) ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                shape = RoundedCornerShape(8.dp)
+            if (selectedExamName != null) {
+                LazyColumn {
+                    items(grades.toList()) { (courseName, grade) ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(16.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
-                                    Text(
-                                        text = courseName,
-                                        modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                    Text(
-                                        text = grade,
-                                        modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                }
+                                Text(
+                                    text = courseName,
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = grade,
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
                             }
                         }
                     }
                 }
             }
         } else {
-            Text(text = "No children available.", style = MaterialTheme.typography.bodyLarge)
+            Text(text = "No exams available.", style = MaterialTheme.typography.bodyLarge)
         }
     }
 }
 
 
-
-suspend fun fetchChildrenForParent(parentId: String): Map<String, String> {
+suspend fun fetchStudentGrades(studentId: String, levelId: String, groupId: String, examName: String): Map<String, String> {
     val database = FirebaseDatabase.getInstance()
-    val childrenRef = database.getReference("users/students")
+    val gradesRef = database.getReference("grades/$levelId/$groupId")
 
-    val childrenSnapshot = childrenRef.get().await()
-    val childrenMap = mutableMapOf<String, String>()
-    for (childSnapshot in childrenSnapshot.children) {
-        val childParentId = childSnapshot.child("parentId").getValue(String::class.java)
-        if (childParentId == parentId) {
-            val childId = childSnapshot.key ?: continue
-            val childName = fetchStudentName(childId)
-            childrenMap[childId] = childName
+    val gradesSnapshot = gradesRef.get().await()
+    val gradesMap = mutableMapOf<String, String>()
+    for (courseSnapshot in gradesSnapshot.children) {
+        for (teacherSnapshot in courseSnapshot.children) {
+            val grade = teacherSnapshot.child(examName).child(studentId).child("grade").getValue(String::class.java)
+            if (grade != null) {
+                val courseName = fetchCourseName(courseSnapshot.key!!)
+                gradesMap[courseName] = grade
+            }
         }
     }
-    return childrenMap
+    return gradesMap
 }
 
-suspend fun fetchLevelAndGroupForStudent(studentId: String): Pair<String, String> {
+suspend fun fetchExamNames(levelId: String, groupId: String, studentId: String): List<String> {
     val database = FirebaseDatabase.getInstance()
-    val studentRef = database.getReference("users/students/$studentId")
+    val gradesRef = database.getReference("grades/$levelId/$groupId")
 
-    val studentSnapshot = studentRef.get().await()
-    val levelId = studentSnapshot.child("levelId").getValue(String::class.java) ?: throw Exception("No level ID")
-    val groupId = studentSnapshot.child("groupId").getValue(String::class.java) ?: throw Exception("No group ID")
-    return Pair(levelId, groupId)
+    val gradesSnapshot = gradesRef.get().await()
+    val examNames = mutableSetOf<String>()
+    for (courseSnapshot in gradesSnapshot.children) {
+        for (teacherSnapshot in courseSnapshot.children) {
+            for (examSnapshot in teacherSnapshot.children) {
+                if (examSnapshot.child(studentId).exists()) {
+                    examNames.add(examSnapshot.key!!)
+                }
+            }
+        }
+    }
+    return examNames.toList()
 }
+
 

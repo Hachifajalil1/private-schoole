@@ -65,12 +65,6 @@ class StudentMainActivity: ComponentActivity() {
                         selectedIcon = Icons.Filled.Home,
                         unSelectedIcon = Icons.Outlined.Home,
                     ),
-                    NavigationItem(
-                        title = "Profile",
-                        route = Screens.Profile.route,
-                        selectedIcon = Icons.Filled.Person,
-                        unSelectedIcon = Icons.Outlined.Person,
-                    ),
 
                     NavigationItem(
                         title = "Timetable",
@@ -78,7 +72,12 @@ class StudentMainActivity: ComponentActivity() {
                         selectedIcon = Icons.Filled.Settings,
                         unSelectedIcon = Icons.Outlined.Settings,
                     ),
-
+                    NavigationItem(
+                        title = "Grades",
+                        route = Screens.GradesStudents.route,
+                        selectedIcon = Icons.Filled.Settings,
+                        unSelectedIcon = Icons.Outlined.Settings,
+                    ),
 
                     NavigationItem(
                         title = "Share",
