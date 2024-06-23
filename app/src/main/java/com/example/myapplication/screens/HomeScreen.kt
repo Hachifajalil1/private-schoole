@@ -70,7 +70,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.AddCircle
@@ -81,6 +85,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -88,156 +93,178 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.room.Update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
-@Composable
-fun HomeScreens(innerPadding: PaddingValues) {
-    Column(
-        modifier = Modifier
-            .padding(innerPadding)
-            .fillMaxSize()
-            .background(Color.White),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Home Screen",
-            fontSize = 40.sp,
-            color = Color.Black
-        )
-    }
-}
+
+
 @Composable
 fun HomeScreen(innerPadding: PaddingValues) {
-    val context = LocalContext.current
-    val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
-    val userId = sharedPreferences.getString("userId", null)
-    Column(
-        modifier = Modifier
-            .padding(innerPadding)
-            .fillMaxSize()
-            .background(Color.White),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-
-    if (userId != null ) {
-        ParentChildrenGradesDisplay(userId)
-    } else {
-        Text(
-            text = "No user ID found or user is not a parent.",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(16.dp)
-        )
-    }
-}}
-
-@Composable
-fun ParentChildrenGradesDisplay(parentId: String) {
     val scope = rememberCoroutineScope()
-    var children by remember { mutableStateOf<Map<String, String>>(mapOf()) }
-    var selectedChildId by remember { mutableStateOf<String?>(null) }
-    var examNames by remember { mutableStateOf(listOf<String>()) }
-    var selectedExamName by remember { mutableStateOf<String?>(null) }
-    var grades by remember { mutableStateOf<Map<String, String>>(mapOf()) }
+    var totalStudents by remember { mutableStateOf(0) }
+    var totalAdmins by remember { mutableStateOf(0) }
+    var totalTeachers by remember { mutableStateOf(0) }
+    var totalParents by remember { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
         scope.launch {
-            children = fetchChildrenForParent(parentId)
+            totalStudents = fetchTotalCount("students")
+            totalAdmins = fetchTotalCount("admins")
+            totalTeachers = fetchTotalCount("teachers")
+            totalParents = fetchTotalCount("parents")
         }
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        if (children.isNotEmpty()) {
-            DropdownMenuSelection(
-                label = "Select Child",
-                options = children,
-                selectedOptionId = selectedChildId
-            ) { childId ->
-                selectedChildId = childId
-                scope.launch {
-                    val (levelId, groupId) = fetchLevelAndGroupForStudent(childId!!)
-                    examNames = fetchExamNames(levelId, groupId, childId)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            InfoCard(title = "Total Students", count = totalStudents, backgroundColor = Color(0xFF3F51B5), modifier = Modifier.weight(1f))
+            InfoCard(title = "Total Employees", count = totalAdmins + totalTeachers, backgroundColor = Color(0xFF7986CB), modifier = Modifier.weight(1f))
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            InfoCard(title = "Total Parents", count = totalParents, backgroundColor = Color(0xFFFFA726), modifier = Modifier.weight(1f))
+        }
+        CalendarCard()
+    }
+}
+
+@Composable
+fun InfoCard(title: String, count: Int, backgroundColor: Color, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(120.dp),
+        shape = RoundedCornerShape(8.dp),
+
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize() // تأكد من أن العمود يملأ المساحة بالكامل داخل البطاقة
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center, // ضبط الترتيب الرأسي إلى المركز
+            horizontalAlignment = Alignment.CenterHorizontally // ضبط الترتيب الأفقي إلى المركز
+        ) {
+            Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = count.toString(), fontSize = 36.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "This Month", fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = "0", fontSize = 14.sp)
+        }
+    }
+}
+
+
+@Composable
+fun CalendarCard() {
+    val dateFormat = SimpleDateFormat("E MMM dd yyyy", Locale.getDefault())
+    val currentDate = remember { Date() }
+    val calendar = Calendar.getInstance()
+    calendar.time = currentDate
+    val month = calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault())
+    val year = calendar.get(Calendar.YEAR)
+    val daysInMonth = remember { getDaysInMonth(currentDate) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight(),
+        shape = RoundedCornerShape(8.dp),
+
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = "$month, $year", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Red)
+            Text(text = dateFormat.format(currentDate), fontSize = 18.sp, color = Color.Red)
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(7),
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(4.dp)
+            ) {
+                val daysOfWeek = listOf("SAT","SUN", "MON", "TUE", "WED", "THU", "FRI")
+                items(daysOfWeek) { day ->
+                    Text(
+                        text = day,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
+                items(daysInMonth) { date ->
+                    Text(
+                        text = SimpleDateFormat("d", Locale.getDefault()).format(date),
+                        fontSize = 18.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(8.dp),
+                        color = if (isSameDay(date, currentDate)) Color.Red else Color.Black
+                    )
                 }
             }
+        }
+    }
+}
 
-            if (selectedChildId != null) {
-                DropdownMenuSelection(
-                    label = "Select Exam",
-                    options = examNames.associateWith { it },
-                    selectedOptionId = selectedExamName
-                ) { examName ->
-                    selectedExamName = examName
-                    scope.launch {
-                        val (levelId, groupId) = fetchLevelAndGroupForStudent(selectedChildId!!)
-                        grades = fetchStudentGrades(selectedChildId!!, levelId, groupId, examName!!)
-                    }
-                }
+fun getDaysInMonth(date: Date): List<Date> {
+    val calendar = Calendar.getInstance()
+    calendar.time = date
+    val daysInMonth = mutableListOf<Date>()
+    val maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
 
-                if (selectedExamName != null) {
-                    LazyColumn {
-                        items(grades.toList()) { (courseName, grade) ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
-                                    Text(
-                                        text = courseName,
-                                        modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                    Text(
-                                        text = grade,
-                                        modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            Text(text = "No children available.", style = MaterialTheme.typography.bodyLarge)
+    for (day in 1..maxDay) {
+        calendar.set(Calendar.DAY_OF_MONTH, day)
+        daysInMonth.add(calendar.time)
+    }
+    return daysInMonth
+}
+
+fun isSameDay(date1: Date, date2: Date): Boolean {
+    val calendar1 = Calendar.getInstance().apply { time = date1 }
+    val calendar2 = Calendar.getInstance().apply { time = date2 }
+    return calendar1.get(Calendar.YEAR) == calendar2.get(Calendar.YEAR) &&
+            calendar1.get(Calendar.DAY_OF_YEAR) == calendar2.get(Calendar.DAY_OF_YEAR)
+}
+
+suspend fun fetchTotalCount(node: String): Int {
+    val database = FirebaseDatabase.getInstance()
+    val ref = database.getReference("users/$node")
+    val snapshot = ref.get().await()
+    return snapshot.childrenCount.toInt()
+}
+
+@Composable
+fun MyApp(content: @Composable () -> Unit) {
+    MaterialTheme {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            content()
         }
     }
 }
 
 
 
-suspend fun fetchChildrenForParent(parentId: String): Map<String, String> {
-    val database = FirebaseDatabase.getInstance()
-    val childrenRef = database.getReference("users/students")
 
-    val childrenSnapshot = childrenRef.get().await()
-    val childrenMap = mutableMapOf<String, String>()
-    for (childSnapshot in childrenSnapshot.children) {
-        val childParentId = childSnapshot.child("parentId").getValue(String::class.java)
-        if (childParentId == parentId) {
-            val childId = childSnapshot.key ?: continue
-            val childName = fetchStudentName(childId)
-            childrenMap[childId] = childName
-        }
-    }
-    return childrenMap
-}
 
-suspend fun fetchLevelAndGroupForStudent(studentId: String): Pair<String, String> {
-    val database = FirebaseDatabase.getInstance()
-    val studentRef = database.getReference("users/students/$studentId")
 
-    val studentSnapshot = studentRef.get().await()
-    val levelId = studentSnapshot.child("levelId").getValue(String::class.java) ?: throw Exception("No level ID")
-    val groupId = studentSnapshot.child("groupId").getValue(String::class.java) ?: throw Exception("No group ID")
-    return Pair(levelId, groupId)
-}
 

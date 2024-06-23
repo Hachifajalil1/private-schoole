@@ -13,10 +13,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -72,6 +74,7 @@ fun LoginScreen(
     var passwordError by remember { mutableStateOf(false) }
     var sendingResetEmail by remember { mutableStateOf(false) }
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -80,7 +83,7 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Image(
-            painter = painterResource(id = R.drawable.screen),
+            painter = painterResource(id = R.drawable.app),
             contentDescription = "Background Image",
             modifier = Modifier
                 .fillMaxWidth()

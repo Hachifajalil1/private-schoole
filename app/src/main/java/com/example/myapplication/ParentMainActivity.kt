@@ -80,7 +80,12 @@ class ParentMainActivity: ComponentActivity() {
                         unSelectedIcon = Icons.Outlined.Settings,
                     ),
 
-
+                    NavigationItem(
+                        title = "Grades",
+                        route = Screens.GradesParents.route,
+                        selectedIcon = Icons.Filled.Settings,
+                        unSelectedIcon = Icons.Outlined.Settings,
+                    ),
                     NavigationItem(
                         title = "Share",
                         route = "share",
