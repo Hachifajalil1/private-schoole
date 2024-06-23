@@ -111,7 +111,9 @@ fun HomeScreen(innerPadding: PaddingValues) {
     var totalAdmins by remember { mutableStateOf(0) }
     var totalTeachers by remember { mutableStateOf(0) }
     var totalParents by remember { mutableStateOf(0) }
-
+    val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+    val userRole = sharedPreferences.getString("userRole", "No userId")
     LaunchedEffect(Unit) {
         scope.launch {
             totalStudents = fetchTotalCount("students")
@@ -128,7 +130,7 @@ fun HomeScreen(innerPadding: PaddingValues) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
+       if (userRole=="admin"){ Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -140,7 +142,7 @@ fun HomeScreen(innerPadding: PaddingValues) {
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             InfoCard(title = "Total Parents", count = totalParents, backgroundColor = Color(0xFFFFA726), modifier = Modifier.weight(1f))
-        }
+        }}
         CalendarCard()
     }
 }
