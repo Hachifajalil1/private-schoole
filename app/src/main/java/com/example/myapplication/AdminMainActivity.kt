@@ -65,6 +65,42 @@ class AdminMainActivity: ComponentActivity() {
                         selectedIcon = Icons.Filled.Home,
                         unSelectedIcon = Icons.Outlined.Home,
                     ),
+                    NavigationItem(
+                        title = "Admins",
+                        route = Screens.HomeAdmins.route,
+                        selectedIcon = Icons.Filled.AccountBox,
+                        unSelectedIcon = Icons.Outlined.AccountCircle,
+                    ),
+                    NavigationItem(
+                        title = "Parents",
+                        route = Screens.Parents.route,
+                        selectedIcon = Icons.Filled.Edit,
+                        unSelectedIcon = Icons.Outlined.AccountCircle,
+                    ),
+                    NavigationItem(
+                        title = "Teachers",
+                        route = Screens.Teacher.route,
+                        selectedIcon = Icons.Filled.Edit,
+                        unSelectedIcon = Icons.Outlined.AccountCircle,
+                    ),
+                    NavigationItem(
+                        title = "Students",
+                        route = Screens.Students.route,
+                        selectedIcon = Icons.Filled.Person,
+                        unSelectedIcon = Icons.Outlined.Person,
+                    ),
+                    NavigationItem(
+                        title = "Level",
+                        route = Screens.LevelGroup.route,
+                        selectedIcon = Icons.Filled.Edit,
+                        unSelectedIcon = Icons.Outlined.AccountCircle,
+                    ),
+                    NavigationItem(
+                        title = "Room",
+                        route = Screens.Room.route,
+                        selectedIcon = Icons.Filled.Edit,
+                        unSelectedIcon = Icons.Outlined.AccountCircle,
+                    ),
 
                     NavigationItem(
                         title = "Courses",
@@ -92,41 +128,12 @@ class AdminMainActivity: ComponentActivity() {
                         unSelectedIcon = Icons.Outlined.Settings,
                     ),
                     NavigationItem(
-                        title = "Admins",
-                        route = Screens.HomeAdmins.route,
-                        selectedIcon = Icons.Filled.AccountBox,
-                        unSelectedIcon = Icons.Outlined.AccountCircle,
+                        title = "Payment",
+                        route = Screens.AdminPaymentScreen.route,
+                        selectedIcon = Icons.Filled.Settings,
+                        unSelectedIcon = Icons.Outlined.Settings,
                     ),
-                    NavigationItem(
-                        title = "Students",
-                        route = Screens.Students.route,
-                        selectedIcon = Icons.Filled.Person,
-                        unSelectedIcon = Icons.Outlined.Person,
-                    ),
-                    NavigationItem(
-                        title = "Room",
-                        route = Screens.Room.route,
-                        selectedIcon = Icons.Filled.Edit,
-                        unSelectedIcon = Icons.Outlined.AccountCircle,
-                    ),
-                    NavigationItem(
-                        title = "Teacher",
-                        route = Screens.Teacher.route,
-                        selectedIcon = Icons.Filled.Edit,
-                        unSelectedIcon = Icons.Outlined.AccountCircle,
-                    ),
-                    NavigationItem(
-                        title = "Level",
-                        route = Screens.LevelGroup.route,
-                        selectedIcon = Icons.Filled.Edit,
-                        unSelectedIcon = Icons.Outlined.AccountCircle,
-                    ),
-                    NavigationItem(
-                        title = "Parents",
-                        route = Screens.Parents.route,
-                        selectedIcon = Icons.Filled.Edit,
-                        unSelectedIcon = Icons.Outlined.AccountCircle,
-                    ),
+
                     NavigationItem(
                         title = "Share",
                         route = "share",

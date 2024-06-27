@@ -255,14 +255,7 @@ suspend fun fetchTotalCount(node: String): Int {
     return snapshot.childrenCount.toInt()
 }
 
-@Composable
-fun MyApp(content: @Composable () -> Unit) {
-    MaterialTheme {
-        Surface(color = MaterialTheme.colorScheme.background) {
-            content()
-        }
-    }
-}
+
 
 
 

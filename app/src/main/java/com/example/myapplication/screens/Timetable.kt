@@ -223,7 +223,7 @@ fun LevelGroupTimetable() {
 }
 @Composable
 fun GroupTimetableStudents(groupId: String, timetable: Map<String, TimetableEntry>) {
-    val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+    val daysOfWeek = listOf("Sunday","Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
     val scrollStateHorizontal = rememberScrollState()
     val scrollStateVertical = rememberScrollState()
@@ -317,7 +317,7 @@ fun GroupTimetableStudents(groupId: String, timetable: Map<String, TimetableEntr
 }
 @Composable
 fun GroupTimetable(groupId: String, timetable: Map<String, TimetableEntry>) {
-    val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+    val daysOfWeek = listOf("Sunday","Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
     val scrollStateHorizontal = rememberScrollState()
     val scrollStateVertical = rememberScrollState()
@@ -1150,7 +1150,7 @@ fun StudentDialog(timetableId: String, todayDate: String, students: Map<String, 
 
 @Composable
 fun TeacherTimetable(timetable: Map<String, TimetableEntry>) {
-    val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+    val daysOfWeek = listOf("Sunday","Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
     val scrollStateHorizontal = rememberScrollState()
     val scrollStateVertical = rememberScrollState()
@@ -1244,7 +1244,7 @@ fun TeacherTimetable(timetable: Map<String, TimetableEntry>) {
 
 @Composable
 fun TimetableScreen(timetable: Map<String, TimetableEntry>) {
-    val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+    val daysOfWeek = listOf("Sunday","Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
     val scrollStateHorizontal = rememberScrollState()
     val scrollStateVertical = rememberScrollState()
